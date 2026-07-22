@@ -1,7 +1,18 @@
 import type { NextConfig } from "next";
+import withSerwistInit from "@serwist/next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ["fs", "path"],
 };
 
-export default nextConfig;
+const withSerwist = withSerwistInit({
+  swSrc: "src/app/sw.ts",
+  swDest: "public/sw.js",
+  disable: process.env.NODE_ENV !== "production",
+  register: false,
+  reloadOnOnline: true,
+  cacheOnNavigation: true,
+  globPublicPatterns: ["**/*.{png,svg,ico,css,js,woff,woff2}"],
+});
+
+export default withSerwist(nextConfig);
