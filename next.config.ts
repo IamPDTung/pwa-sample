@@ -12,7 +12,7 @@ const withSerwist = withSerwistInit({
   register: false,
   reloadOnOnline: true,
   cacheOnNavigation: true,
-  globPublicPatterns: ["**/*.{png,svg,ico,css,js,woff,woff2}"],
+  globPublicPatterns: ["**/*.{html,png,svg,ico,css,js,woff,woff2}"],
 });
 
 export default withSerwist(nextConfig);
