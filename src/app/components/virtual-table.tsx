@@ -15,6 +15,7 @@ import {
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { type RowData, type TableResponse } from "../lib/table-data";
+import { downloadCSV } from "../lib/export-csv";
 
 const PAGE_LIMIT = 50;
 
@@ -167,6 +168,10 @@ export default function VirtualTable() {
     fetchPage();
   }, [fetchPage]);
 
+  const handleExportCSV = useCallback(() => {
+    downloadCSV(rows, `table-export-${rows.length}-rows.csv`);
+  }, [rows]);
+
   const table = useReactTable({
     data: rows,
     columns,
@@ -199,9 +204,22 @@ export default function VirtualTable() {
 
   return (
     <div className="w-full max-w-5xl mx-auto">
-      <p className="text-sm text-zinc-500 mb-2">
-        {loadedCount.toLocaleString()} rows loaded{hasMore ? "..." : ""}
-      </p>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-sm text-zinc-500">
+          {loadedCount.toLocaleString()} rows loaded{hasMore ? "..." : ""}
+        </p>
+        {rows.length > 0 && (
+          <button
+            onClick={handleExportCSV}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-violet-50 text-violet-700 hover:bg-violet-100 dark:bg-violet-900/30 dark:text-violet-300 dark:hover:bg-violet-900/50 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            Export CSV
+          </button>
+        )}
+      </div>
 
       {error && (
         <div className="flex items-center gap-3 text-sm text-red-600 dark:text-red-400 mb-2">

@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import RegisterPWA from "./register-pwa";
 import Navbar from "./components/navbar";
 import { UploadProvider } from "./components/upload-context";
+import QueryProvider from "./components/query-provider";
+import { ToastProvider } from "./components/toast";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -33,10 +35,14 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <RegisterPWA />
-        <UploadProvider>
-          <Navbar />
-          {children}
-        </UploadProvider>
+        <QueryProvider>
+          <ToastProvider>
+            <UploadProvider>
+              <Navbar />
+              {children}
+            </UploadProvider>
+          </ToastProvider>
+        </QueryProvider>
       </body>
     </html>
   );

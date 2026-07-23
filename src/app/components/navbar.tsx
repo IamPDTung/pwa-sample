@@ -8,6 +8,8 @@ const links = [
   { href: "/push", label: "Push Notifications" },
   { href: "/upload", label: "Upload File" },
   { href: "/virtual", label: "Virtual Table" },
+  { href: "/spreadsheet", label: "Spreadsheet" },
+  { href: "/optimistic", label: "Optimistic UI" },
 ];
 
 export default function Navbar() {
