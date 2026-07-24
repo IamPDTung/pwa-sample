@@ -1,231 +1,141 @@
-# Tài liệu dự án My PWA
+# My PWA — Progressive Web App Sample
 
-Dự án Progressive Web App (PWA) đơn giản xây dựng bằng Next.js 16 — cho phép cài đặt ứng dụng web lên desktop giống như YouTube.
+Dự án PWA mẫu xây dựng bằng Next.js 16, demo các tính năng: cài đặt PWA, push notifications (local + Web Push từ Backend), upload file lớn (stream), bảng ảo 100K rows, bảng tính (spreadsheet), CRUD với optimistic UI + rollback.
 
----
+## Stack
+
+- **Next.js 16** (App Router, TypeScript, Tailwind CSS)
+- **TanStack** Table, Virtual, Query
+- **@serwist/next** — PWA bundling (webpack)
+- **web-push** — Web Push từ backend qua browser push service
+
+## Routes
+
+| Route | Mô tả | Backend API |
+|---|---|---|
+| `/` | Landing page | — |
+| `/push` | Push notifications: direct + SW interval + Web Push từ BE | `GET /api/push/vapid-key`, `POST /api/push/subscribe`, `POST /api/push/send` |
+| `/upload` | Upload file lớn (stream, 5-100GB) | `POST /api/upload` |
+| `/virtual` | Bảng ảo 100K dòng, infinite scroll, server-side sort | `GET /api/table-data` |
+| `/spreadsheet` | Bảng tính client-only: edit ô, công thức, CSV import/export | — |
+| `/optimistic` | CRUD với optimistic UI + rollback (TanStack Query) | `GET/POST/PUT /api/items`, `DELETE /api/items/[id]` |
 
 ## Cấu trúc thư mục
 
 ```
-pwa-sample/
-├── public/
-│   ├── manifest.json              ← Cấu hình PWA (tên app, icon, theme color...)
-│   ├── icon-192.png               ← Icon 192x192 (dùng khi cài đặt)
-│   ├── icon-512.png               ← Icon 512x512 (dùng trên splash screen)
-│   └── sw.js                      ← Service Worker output (tự động sinh từ sw.ts)
-├── src/
-│   └── app/
-│       ├── layout.tsx             ← Layout gốc: manifest, RegisterPWA, Navbar, UploadProvider
-│       ├── page.tsx               ← Landing page: logo + 2 link tới /push và /upload
-│       ├── push/
-│       │   └── page.tsx           ← Trang Push Notifications
-│       ├── upload/
-│       │   └── page.tsx           ← Trang Upload File Test
-│       ├── api/upload/
-│       │   └── route.ts           ← BE: POST handler stream file → disk (không buffer)
-│       ├── components/
-│       │   ├── navbar.tsx         ← Header navigation (Home / Push / Upload)
-│       │   ├── push-noti.tsx      ← Push notification component (2 chế độ)
-│       │   ├── upload-test.tsx    ← FE upload: chọn file + progress bar
-│       │   └── upload-context.tsx ← Context giữ state upload xuyên suốt các route
-│       ├── register-pwa.tsx       ← Client Component: đăng ký Service Worker
-│       ├── sw.ts                  ← Mã nguồn Service Worker (webpack → sw.js)
-│       └── globals.css            ← Styles toàn cục (Tailwind CSS v4)
-├── next.config.ts                 ← Cấu hình Next.js + tích hợp @serwist/next
-├── uploads/                       ← Thư mục chứa file upload (tự động tạo)
-├── package.json                   ← Scripts và dependencies
-├── README.md                      ← Tài liệu này
-└── AGENTS.md                      ← Hướng dẫn cho AI agent làm việc với repo
+src/app/
+├── layout.tsx                 # Root layout: <RegisterPWA> → <QueryProvider> → <ToastProvider> → <UploadProvider>
+├── page.tsx                   # Landing page
+├── globals.css                # Tailwind + animations
+├── register-pwa.tsx           # Client component: window.serwist.register()
+├── sw.ts                      # SW source → public/sw.js
+├── api/
+│   ├── items/                 # CRUD API (optimistic)
+│   ├── push/
+│   │   ├── vapid-key/route.ts # GET VAPID public key
+│   │   ├── subscribe/route.ts # POST/DELETE push subscriptions
+│   │   └── send/route.ts      # POST trigger push from BE
+│   ├── table-data/            # 100K rows pagination
+│   └── upload/                # Stream upload
+├── components/
+│   ├── navbar.tsx             # 6-link navigation
+│   ├── push-noti.tsx          # Direct + SW interval + Web Push UI
+│   ├── upload-context.tsx     # Upload state context
+│   ├── upload-test.tsx        # File input + XHR progress bar
+│   ├── virtual-table.tsx      # TanStack Table + Virtual
+│   ├── spreadsheet.tsx        # Custom editable grid + formula eval
+│   ├── optimistic-crud.tsx    # TanStack Query mutations
+│   ├── query-provider.tsx     # QueryClient provider
+│   └── toast.tsx              # Toast notification system
+├── lib/
+│   ├── vapid.ts               # VAPID key generation (globalThis cache)
+│   ├── subscription-store.ts  # In-memory push subscription store
+│   ├── table-data.ts          # Mock data + types
+│   ├── items-store.ts         # In-memory CRUD store
+│   └── export-csv.ts          # CSV serialization
+├── push/                      # Trang push
+├── upload/                    # Trang upload
+├── virtual/                   # Trang virtual table
+├── spreadsheet/               # Trang spreadsheet
+└── optimistic/                # Trang optimistic CRUD
 ```
 
----
+## Tính năng
 
-## 3 Routes
+### Push Notifications (3 chế độ)
 
-| Route | Chức năng |
-|-------|-----------|
-| `/` | Landing page — logo, mô tả PWA, badge, 2 nút dẫn tới các trang con |
-| `/push` | Test push notification offline: 2 chế độ (direct + SW interval) |
-| `/upload` | Test upload file lớn: FE chọn file → progress bar → BE stream ra `uploads/` |
-| `/api/upload` | API POST nhận file upload (BE — dynamic route) |
+| Chế độ | Cách hoạt động | Cần tab mở? | Cần browser mở? |
+|---|---|---|---|
+| **Send Now** | `new Notification()` trực tiếp | Có | Có |
+| **Auto (SW interval)** | `postMessage` → SW `setInterval` 5s | Không | Có |
+| **Web Push (BE)** | BE gửi qua browser push service (FCM/Moz/APN) | Không | **Không** (OS-level) |
 
----
+Web Push flow: Frontend `PushManager.subscribe()` → gửi subscription lên BE → BE `webpush.sendNotification()` → push service → SW `push` event → notification. Hoạt động ngay cả khi browser đóng hoàn toàn.
 
-## Luồng hoạt động PWA (How it works)
+### Upload File Lớn
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         BUILD TIME (npm run build)                  │
-│                                                                     │
-│  sw.ts (mã nguồn SW)  ──→  @serwist/webpack-plugin  ──→  sw.js    │
-│                              (webpack build step)         (output)  │
-│                              - Quét public/ để tìm file              │
-│                              - Tạo precache manifest                 │
-│                              - Nhúng vào sw.js                       │
-└─────────────────────────────────────────────────────────────────────┘
+- XMLHttpRequest + `upload.onprogress` → progress bar real-time
+- Backend: `Readable.fromWeb(request.body)` → `pipeline()` → disk (không buffer RAM, hỗ trợ 5-100GB)
+- State upload tồn tại qua route navigation (UploadProvider context)
 
-┌─────────────────────────────────────────────────────────────────────┐
-│                      RUNTIME (trình duyệt người dùng)               │
-│                                                                     │
-│  1. Người dùng mở http://localhost:3000                             │
-│                         │                                           │
-│                         ▼                                           │
-│  2. Next.js server trả về HTML của layout.tsx                       │
-│     - <head> chứa <link rel="manifest" href="/manifest.json">       │
-│     - Navbar render 3 link (Home / Push / Upload)                   │
-│                         │                                           │
-│                         ▼                                           │
-│  3. Trình duyệt đọc manifest.json                                   │
-│     - Biết app tên là "My PWA"                                      │
-│     - Biết icon cần dùng: icon-192.png, icon-512.png                │
-│     - Biết theme color: #7c3aed (tím)                               │
-│                         │                                           │
-│                         ▼                                           │
-│  4. Trang load xong → RegisterPWA component mount                   │
-│     → window.serwist.register() đăng ký sw.js làm Service Worker     │
-│                         │                                           │
-│                         ▼                                           │
-│  5. Service Worker (sw.js) bắt đầu hoạt động                        │
-│     - Precache tất cả static assets                                 │
-│     - Runtime caching (defaultCache)                                │
-│     - Xử lý push event → hiển thị desktop notification              │
-│     - Xử lý message event (START_INTERVAL / STOP_INTERVAL)          │
-│                         │                                           │
-│                         ▼                                           │
-│  6. Trình duyệt phát hiện PWA đủ điều kiện                          │
-│     ✓ Có manifest.json hợp lệ                                       │
-│     ✓ Có Service Worker đã đăng ký                                  │
-│     ✓ Phục vụ qua HTTPS (hoặc localhost)                            │
-│                         │                                           │
-│                         ▼                                           │
-│  7. Hiển thị nút "Install" trên thanh địa chỉ                       │
-│     ┌──────────────────────────────────────────────┐                │
-│     │  🔒 localhost:3000       [⬇ Install]  ☆  ⋮  │                │
-│     └──────────────────────────────────────────────┘                │
-│                         │                                           │
-│                         ▼                                           │
-│  8. Người dùng nhấn Install                                        │
-│     - App được cài lên desktop với icon tím chữ "P"                 │
-│     - Mở trong cửa sổ standalone (không có thanh địa chỉ)           │
-│     - Hoạt động offline nhờ Service Worker cache                    │
-└─────────────────────────────────────────────────────────────────────┘
-```
+### Bảng Ảo 100K Dòng
 
----
+- TanStack Table (columns, sorting) + TanStack Virtual (chỉ render dòng trong viewport)
+- Cursor-based pagination, server-side sort
+- Offline: data đã load vẫn hiển thị, nút Retry khi mất mạng
+- Export CSV dữ liệu đã load
 
-## Tính năng Push Notification (2 chế độ)
+### Spreadsheet
 
-| Chế độ | Cách hoạt động | Offline? | Cần tab mở? |
-|--------|---------------|----------|-------------|
-| **Send Now (tab open)** | `new Notification()` gọi trực tiếp từ page | Có | Có |
-| **Start Auto (every 5s)** | Gửi message cho SW → SW chạy `setInterval` mỗi 5s | Có | Không (miễn browser mở) |
+- Editable grid 30×10, formula bar + suggestions dropdown (SUM, AVERAGE, COUNT, MAX, MIN, IF)
+- Formula evaluation (range + arithmetic), cell modification tracking (amber highlight)
+- CSV import/export, add row/col
 
-Flow:
-```
-User click → requestPermission() → nếu granted:
-  ├── Send Now: new Notification(...)
-  └── Start Auto: SW.postMessage({ type: "START_INTERVAL" })
-       → SW: setInterval → showNotification() mỗi 5s
-       → Click noti → focus/refocus tab
-```
+### Optimistic CRUD
 
----
+- TanStack Query `useMutation` với `onMutate` (snapshot + optimistic update) / `onError` (rollback) / `onSettled` (refetch)
+- Add/update status/delete items, animation mờ cho item đang pending
+- Toast notifications (context-based, auto-dismiss 3.5s)
+- Test rollback: `DELETE /api/items/intentional-fail`
 
-## Tính năng Upload File (BE + FE)
-
-### FE (upload-test.tsx)
-```
-User chọn file → UploadTest hiện file size
-  → Click Upload → XMLHttpRequest.send(file)
-  → xhr.upload.onprogress → cập nhật progress bar %
-  → xhr.onload → hiển thị kết quả
-  → UploadProvider context giữ state xuyên suốt các route
-```
-
-### BE (api/upload/route.ts)
-```
-POST /api/upload
-  → Đọc Content-Length + x-file-name header
-  → Readable.fromWeb(request.body) chuyển Web Stream → Node Stream
-  → pipeline(nodeStream, fs.createWriteStream(uploads/file))
-  → KHÔNG buffer vào RAM → hỗ trợ file 5GB-100GB
-  → KHÔNG block event loop
-```
-
----
-
-## Chi tiết các file quan trọng
-
-### `public/manifest.json` — "Chứng minh thư" của PWA
-
-| Trường | Ý nghĩa |
-|--------|---------|
-| `name` | Tên đầy đủ của app (hiển thị khi cài đặt) |
-| `short_name` | Tên ngắn (dùng khi không đủ chỗ) |
-| `start_url` | URL mở khi người dùng click icon desktop |
-| `display` | `standalone` — mở không có thanh địa chỉ (giống app) |
-| `theme_color` | Màu thanh toolbar khi mở app |
-| `background_color` | Màu nền splash screen khi app đang load |
-| `icons` | Danh sách icon 192 và 512 |
-
-### `src/app/sw.ts` — Service Worker
+## Providers wrapping (layout.tsx)
 
 ```
-Serwist() với:
-  - precacheEntries:  danh sách file tĩnh từ build (tự động sinh)
-  - skipWaiting:      SW mới không chờ tab cũ đóng
-  - clientsClaim:     SW kiểm soát tất cả client ngay lập tức
-  - runtimeCaching:   chiến lược cache động (defaultCache)
-Listener thêm:
-  - message:    START_INTERVAL / STOP_INTERVAL → điều khiển timer noti
-  - push:       (sẵn sàng cho web-push sau này)
-  - notificationclick: click noti → focus/reopen tab
+<html>
+  <body>
+    <RegisterPWA />           ← Đăng ký service worker
+    <QueryProvider>           ← TanStack Query
+      <ToastProvider>         ← Toast system
+        <UploadProvider>      ← Upload state context
+          <Navbar />
+          {children}
 ```
 
-### `src/app/components/upload-context.tsx` — State upload toàn cục
+## Dev commands
 
-```
-UploadProvider bọc toàn bộ layout
-  → state (uploading, progress, fileSize, result, error) sống xuyên suốt route
-  → useUpload() hook cho component con đọc/ghi state
-  → XHR reference giữ ở ref → vẫn chạy khi component mount/unmount
-```
-
-### `next.config.ts` — Cấu hình Next.js
-
-```ts
-withSerwistInit({
-  swSrc: "src/app/sw.ts",                              // File nguồn SW
-  swDest: "public/sw.js",                              // File output (tự động sinh)
-  disable: process.env.NODE_ENV !== "production",      // TẮT SW khi dev
-  register: false,                                     // Đăng ký thủ công
-  globPublicPatterns: [...]                            // File nào cần precache
-})
-```
-
----
-
-## Các lệnh cần nhớ
-
-| Lệnh | Mô tả |
-|------|------|
-| `npm run dev` | Chạy dev server (SW bị tắt — tránh loop với webpack HMR) |
-| `npm run build` | Build production (SW được bật) |
-| `npm start` | Chạy production build → test PWA thật |
-| `npm run lint` | Kiểm tra code quality (eslint) |
-
----
+| Command | Mô tả |
+|---|---|
+| `npm run dev` | Dev server (SW disabled — tránh HMR loop) |
+| `npm run build` | Production build |
+| `npm start` | Chạy production → test PWA thật |
+| `npm run lint` | ESLint |
 
 ## Lưu ý quan trọng
 
-| Vấn đề | Giải thích |
-|--------|------------|
-| **Phải dùng `--webpack`** | `@serwist/next` chưa hỗ trợ Turbopack |
-| **SW bị tắt khi dev** | `disable: NODE_ENV !== "production"` — tránh SW bắt webpack HMR gây loop vô hạn |
-| **Muốn test SW trên dev** | Build production: `npm run build && npm start` |
-| **`sw.js` là file sinh tự động** | Không sửa tay, đã thêm vào eslint ignore |
-| **`manifest.json` phải ở `public/`** | Next.js chỉ serve static từ thư mục này |
-| **Đăng ký SW là thủ công** | `register: false` → `window.serwist.register()` từ client component |
-| **Upload state không mất khi đổi route** | `UploadProvider` context wrap toàn bộ layout — layout không unmount |
-| **Upload file lớn không block** | Dùng stream (`pipeline`) → không buffer vào RAM |
-| **Noti offline cần browser mở** | SW interval chạy khi browser còn sống (dù tab đóng). Push thật (web-push) cần internet |
+- **Phải dùng `--webpack`** — `@serwist/next` chưa hỗ trợ Turbopack
+- **SW bị tắt khi dev** — `disable: NODE_ENV !== "production"`
+- **Muốn test SW/PWA:** `npm run build && npm start`
+- **SW đăng ký thủ công** — `register: false` → `window.serwist.register()` từ client component
+- **`sw.js` sinh tự động** — không sửa tay, đã thêm vào eslint ignore
+- **`tsconfig.json` có `"webworker"` lib** — cho `ServiceWorkerGlobalScope` type
+- **Web Push: browser phải hỗ trợ** — Chrome/Edge/Firefox đều có sẵn. Safari cần PWA đã cài đặt.
+
+## Tài liệu chi tiết
+
+Xem `features/README.md` và các thư mục con:
+- `features/pwa/` — Kiến trúc PWA + 8 use cases
+- `features/push-notifications/` — Kiến trúc push (local + Web Push) + 19 use cases
+- `features/upload/` — Kiến trúc upload + 10 use cases
+- `features/virtual-table/` — Kiến trúc bảng ảo + 9 use cases
+- `features/spreadsheet/` — Kiến trúc bảng tính + 14 use cases
+- `features/optimistic-crud/` — Kiến trúc CRUD + 14 use cases
