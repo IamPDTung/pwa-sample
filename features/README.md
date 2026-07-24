@@ -36,6 +36,7 @@ src/app/
 ├── virtual/                # Trang bảng ảo
 ├── spreadsheet/            # Trang bảng tính
 └── optimistic/             # Trang CRUD lạc quan
+├── lazy-loading/           # Trang lazy loading demo
 ```
 
 ## Tài liệu tính năng
@@ -65,9 +66,12 @@ features/
 ├── spreadsheet/
 │   ├── architecture.md           ← Kiến trúc bảng tính: grid model, formula eval, edit flow
 │   └── usecases.md               ← 14 use cases: chỉnh sửa ô, SUM/AVERAGE, import/export, ...
-└── optimistic-crud/
-    ├── architecture.md           ← Kiến trúc CRUD: mutations, optimistic update, rollback
-    └── usecases.md               ← 14 use cases: add/update/delete, rollback, toast, refetch, ...
+├── optimistic-crud/
+│   ├── architecture.md           ← Kiến trúc CRUD: mutations, optimistic update, rollback
+│   └── usecases.md               ← 14 use cases: add/update/delete, rollback, toast, refetch, ...
+└── lazy-loading/
+    ├── architecture.md           ← Kiến trúc lazy loading: code-splitting, dynamic import, lazy images
+    └── usecases.md               ← 13 use cases: toggle widget, scroll images, import module, load more, ...
 ```
 
 ## Providers & wrapping order
@@ -97,6 +101,7 @@ features/
 | `/virtual` | Bảng ảo 100k rows, infinite scroll | `GET /api/table-data` |
 | `/spreadsheet` | Bảng tính có thể chỉnh sửa, import/export CSV, gợi ý công thức | Không (client-only) |
 | `/optimistic` | CRUD với optimistic UI + rollback | `GET/POST/PUT /api/items`, `DELETE /api/items/[id]` |
+| `/lazy-loading` | Demo code-splitting, lazy images, dynamic import, load more | `GET /api/lazy-items` |
 
 ## Các nguyên tắc thiết kế chung
 1. **Mọi component UI đều là "use client"** — import trực tiếp từ server component page

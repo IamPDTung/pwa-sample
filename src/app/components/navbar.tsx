@@ -9,6 +9,7 @@ const links = [
   { href: "/upload", label: "Upload File" },
   { href: "/virtual", label: "Virtual Table" },
   { href: "/spreadsheet", label: "Spreadsheet" },
+  { href: "/lazy-loading", label: "Lazy Loading" },
   { href: "/optimistic", label: "Optimistic UI" },
 ];
 

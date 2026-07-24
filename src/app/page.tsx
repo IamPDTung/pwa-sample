@@ -38,10 +38,16 @@ export default function Home() {
             Push Notifications
           </Link>
           <Link
-            href="/upload"
+            href="/lazy-loading"
             className="px-5 py-2 rounded-full border border-violet-600 text-violet-600 text-sm font-medium hover:bg-violet-50 dark:hover:bg-violet-900/30 transition-colors"
           >
-            Upload File
+            Lazy Loading
+          </Link>
+          <Link
+            href="/spreadsheet"
+            className="px-5 py-2 rounded-full border border-violet-600 text-violet-600 text-sm font-medium hover:bg-violet-50 dark:hover:bg-violet-900/30 transition-colors"
+          >
+            Spreadsheet
           </Link>
           <Link
             href="/virtual"
