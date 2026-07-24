@@ -1,4 +1,4 @@
-# PWA — Progressive Web App
+# PWA — Kiến trúc & Luồng hoạt động
 
 ## Tổng quan
 Dự án sử dụng `@serwist/next` để biến ứng dụng Next.js thành PWA có thể cài đặt trên desktop/mobile.
@@ -63,22 +63,56 @@ import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import { Serwist } from "serwist";
 
-declare global {
-  interface WorkerGlobalScope extends SerwistGlobalConfig {
-    __SW_MANIFEST: (PrecacheEntry | string)[];
-  }
-}
-
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
   skipWaiting: true,
   clientsClaim: true,
-  navigationPreload: true,
+  navigationPreload: false,
   runtimeCaching: defaultCache,
+});
+```
+
+### Fetch listener (navigation offline support)
+Được đăng ký **trước** `serwist.addEventListeners()` để `event.respondWith()` của ta thắng:
+
+```ts
+self.addEventListener("fetch", (event: FetchEvent) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  if (request.mode === "navigate" && url.origin === self.location.origin) {
+    event.respondWith((async () => {
+      try {
+        // Online: fetch + cache response
+        const networkResponse = await fetch(request);
+        const cache = await caches.open("page-navigations");
+        cache.put(request, networkResponse.clone());
+        return networkResponse;
+      } catch {
+        // Offline: thử cache → offline.html → root → inline HTML
+        const cachedPage = await caches.match(request);
+        if (cachedPage) return cachedPage;
+
+        const offlineCached = await caches.match("/offline.html");
+        if (offlineCached) return offlineCached;
+
+        const rootCached = await caches.match("/");
+        if (rootCached) return rootCached;
+
+        return new Response(OFFLINE_HTML, {
+          status: 200,
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+    })());
+  }
 });
 
 serwist.addEventListeners();
 ```
+
+**Tại sao `defaultCache` vẫn ở trong `runtimeCaching`?**
+`defaultCache` (`/.*/i` → `NetworkOnly`) chỉ xử lý non-navigation requests (JS, CSS, ảnh, API). Khi navigation request đến, custom fetch listener (đăng ký trước) gọi `event.respondWith()` trước → serwist không xử lý navigation request đó.
 
 ### Message handler (push notifications interval)
 ```ts
@@ -99,16 +133,16 @@ self.addEventListener("message", (event) => {
 });
 ```
 
-Khi tab đóng, SW vẫn chạy và có thể gửi notification mỗi 5 giây. Khi tab mở lại, component gửi `STOP_INTERVAL`.
-
 ### Notification click handler
 ```ts
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   event.waitUntil(
     clients.matchAll({ type: "window" }).then((clientList) => {
-      // Nếu có tab đang mở, focus vào tab đó
-      // Nếu không, mở tab mới
+      for (const client of clientList) {
+        if ("focus" in client) return (client as WindowClient).focus();
+      }
+      return clients.openWindow("/");
     })
   );
 });
@@ -134,9 +168,6 @@ export default function RegisterPWA() {
 - `useEffect` đảm bảo chỉ chạy trên client
 - `window.serwist.register()` là API của `@serwist/next`
 
-## ESLint
-`public/sw.js` được thêm vào `eslint.config.mjs` ignores vì file này được generate tự động.
-
 ## Flow cài đặt PWA
 
 ```
@@ -149,3 +180,6 @@ Người dùng mở trang web
   → App được thêm vào desktop/màn hình chính
   → Mở app ở chế độ standalone (không có URL bar)
 ```
+
+## ESLint
+`public/sw.js` được thêm vào `eslint.config.mjs` ignores vì file này được generate tự động.

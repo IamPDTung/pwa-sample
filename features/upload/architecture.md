@@ -1,4 +1,4 @@
-# Upload File Lớn
+# Upload File Lớn — Kiến trúc & Luồng hoạt động
 
 ## Tổng quan
 Trang `/upload` cho phép upload file với kích thước lớn (5GB - 100GB) lên server mà **không buffer toàn bộ file vào RAM**. Sử dụng streaming từ request body thẳng vào ổ đĩa.
@@ -125,5 +125,4 @@ User chọn file (5GB video.mp4)
 
 ## Lưu ý
 - Thư mục `uploads/` cần tồn tại và có quyền ghi
-- Upload context state được lưu trong `localStorage` để dashboard có thể hiển thị stats
 - Không có giới hạn kích thước file trong code (có thể cấu hình qua `next.config.ts` nếu cần)

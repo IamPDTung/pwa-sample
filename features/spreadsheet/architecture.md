@@ -185,27 +185,6 @@ const addCol = () => setGrid(prev => prev.map(row => [...row, ""]));
 
 - Row: thêm mảng rỗng vào cuối grid
 - Col: thêm `""` vào mỗi row hiện có
-- Không hỗ trợ xóa hàng/cột (có thể thêm sau)
-
-## Giao diện
-
-```
-┌─────────────────────────────────────────────────┐
-│ [Import CSV] [Export CSV] [+ Row] [+ Col]  30×10│ Toolbar
-├─────────────────────────────────────────────────┤
-│ A1  │ =SUM(        │                           │ Formula bar
-│     │ ┌─────────────────────┐                  │ + suggestions
-│     │ │ SUM  SUM(A1:A5)  Sum│ ← dropdown       │
-│     │ └─────────────────────┘                  │
-├─────┼───┬───┬───┬───┬───┬───┬───┬───┬───┬───┤
-│     │ A │ B │ C │ D │ E │ F │ G │ H │ I │ J │ Column headers
-├─────┼───┼───┼───┼───┼───┼───┼───┼───┼───┼───┤
-│  1  │   │   │   │   │   │   │   │   │   │   │ Row 1
-│  2  │ ▓ │   │   │   │   │   │   │   │   │   │ ▓ = modified cell
-│  3  █   │   │   │   │   │   │   │   │   │   │ █ = active cell (ring tím)
-│ ... │   │   │   │   │   │   │   │   │   │   │
-└─────┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┘
-```
 
 ## Tại sao không dùng thư viện spreadsheet?
 - `@iddan/react-spreadsheet` quá cũ (React 16), không tương thích React 19

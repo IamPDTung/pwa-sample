@@ -1,4 +1,4 @@
-# Push Notifications
+# Push Notifications — Kiến trúc & Luồng hoạt động
 
 ## Tổng quan
 Trang `/push` cho phép kiểm tra 2 chế độ push notification trên trình duyệt:

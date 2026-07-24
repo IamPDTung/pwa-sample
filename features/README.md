@@ -38,6 +38,38 @@ src/app/
 └── optimistic/             # Trang CRUD lạc quan
 ```
 
+## Tài liệu tính năng
+
+Mỗi tính năng có thư mục riêng trong `features/` gồm 2 file:
+
+| File | Nội dung |
+|---|---|
+| `architecture.md` | Mô tả cách code hoạt động, luồng dữ liệu, state, cấu trúc file, sơ đồ flow |
+| `usecases.md` | Tất cả các trường hợp sử dụng (user scenarios), điều kiện, các bước, kết quả mong đợi |
+
+```
+features/
+├── README.md                     ← file này
+├── pwa/
+│   ├── architecture.md           ← Kiến trúc PWA, SW, manifest, offline caching
+│   └── usecases.md               ← 8 use cases: cài đặt, online, offline, update SW, ...
+├── push-notifications/
+│   ├── architecture.md           ← Kiến trúc push: direct + interval, SW message handler
+│   └── usecases.md               ← 10 use cases: xin quyền, gửi ngay, auto, click noti, ...
+├── upload/
+│   ├── architecture.md           ← Kiến trúc upload: XHR progress, streaming, context
+│   └── usecases.md               ← 10 use cases: file nhỏ/lớn, mất mạng, chuyển trang, ...
+├── virtual-table/
+│   ├── architecture.md           ← Kiến trúc bảng ảo: cursor pagination, virtual scroll, sort
+│   └── usecases.md               ← 9 use cases: scroll, sort, export CSV, offline, retry, ...
+├── spreadsheet/
+│   ├── architecture.md           ← Kiến trúc bảng tính: grid model, formula eval, edit flow
+│   └── usecases.md               ← 14 use cases: chỉnh sửa ô, SUM/AVERAGE, import/export, ...
+└── optimistic-crud/
+    ├── architecture.md           ← Kiến trúc CRUD: mutations, optimistic update, rollback
+    └── usecases.md               ← 14 use cases: add/update/delete, rollback, toast, refetch, ...
+```
+
 ## Providers & wrapping order
 ```
 <html>
