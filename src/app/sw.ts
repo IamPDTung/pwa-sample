@@ -1,6 +1,6 @@
 import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { Serwist, NetworkFirst, ExpirationPlugin } from "serwist";
+import { Serwist } from "serwist";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -19,37 +19,39 @@ const serwist = new Serwist({
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: false,
-  runtimeCaching: [
-    {
-      matcher: ({ request, sameOrigin }) =>
-        request.mode === "navigate" && sameOrigin,
-      handler: new NetworkFirst({
-        cacheName: "page-navigations",
-        networkTimeoutSeconds: 5,
-        plugins: [
-          new ExpirationPlugin({
-            maxEntries: 50,
-            maxAgeSeconds: 7 * 24 * 60 * 60,
-          }),
-        ],
-      }),
-    },
-    ...defaultCache,
-  ],
+  runtimeCaching: defaultCache,
 });
 
-serwist.setCatchHandler(async ({ request }) => {
-  if (request.mode === "navigate") {
-    const cached = await caches.match("/offline.html");
-    if (cached) return cached;
-    const root = await caches.match("/");
-    if (root) return root;
-    return new Response(OFFLINE_HTML, {
-      status: 200,
-      headers: { "Content-Type": "text/html" },
-    });
+self.addEventListener("fetch", (event: FetchEvent) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  if (request.mode === "navigate" && url.origin === self.location.origin) {
+    event.respondWith(
+      (async () => {
+        try {
+          const networkResponse = await fetch(request);
+          const cache = await caches.open("page-navigations");
+          cache.put(request, networkResponse.clone());
+          return networkResponse;
+        } catch {
+          const cachedPage = await caches.match(request);
+          if (cachedPage) return cachedPage;
+
+          const offlineCached = await caches.match("/offline.html");
+          if (offlineCached) return offlineCached;
+
+          const rootCached = await caches.match("/");
+          if (rootCached) return rootCached;
+
+          return new Response(OFFLINE_HTML, {
+            status: 200,
+            headers: { "Content-Type": "text/html" },
+          });
+        }
+      })()
+    );
   }
-  return Response.error();
 });
 
 serwist.addEventListeners();
