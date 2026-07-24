@@ -75,6 +75,30 @@ self.addEventListener("message", (event: ExtendableMessageEvent) => {
   if (type === "STOP_INTERVAL") {
     stopInterval();
   }
+
+  if (type === "SYNC_SESSION") {
+    event.waitUntil(
+      (async () => {
+        try {
+          const res = await fetch("/api/auth/session");
+          if (res.ok) {
+            const session = await res.json();
+            const windows = await self.clients.matchAll({ type: "window" });
+            for (const client of windows) {
+              client.postMessage({ type: "SESSION_OK", session });
+            }
+          } else {
+            const windows = await self.clients.matchAll({ type: "window" });
+            for (const client of windows) {
+              client.postMessage({ type: "SESSION_EXPIRED" });
+            }
+          }
+        } catch {
+          // offline, ignore
+        }
+      })()
+    );
+  }
 });
 
 self.addEventListener("push", (event: PushEvent) => {

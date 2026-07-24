@@ -5,6 +5,7 @@ import Navbar from "./components/navbar";
 import { UploadProvider } from "./components/upload-context";
 import QueryProvider from "./components/query-provider";
 import { ToastProvider } from "./components/toast";
+import SessionProvider from "./components/sso/session-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,14 +36,16 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <RegisterPWA />
-        <QueryProvider>
-          <ToastProvider>
-            <UploadProvider>
-              <Navbar />
-              {children}
-            </UploadProvider>
-          </ToastProvider>
-        </QueryProvider>
+        <SessionProvider>
+          <QueryProvider>
+            <ToastProvider>
+              <UploadProvider>
+                <Navbar />
+                {children}
+              </UploadProvider>
+            </ToastProvider>
+          </QueryProvider>
+        </SessionProvider>
       </body>
     </html>
   );

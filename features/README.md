@@ -16,7 +16,10 @@ src/app/
 ├── api/                    # API routes (BE)
 │   ├── items/              # CRUD items (optimistic UI)
 │   ├── table-data/         # Bảng ảo 100k rows
-│   └── upload/             # Upload file lớn
+│   ├── upload/             # Upload file lớn
+│   ├── push/               # Push notifications (VAPID + subscribe + send)
+│   ├── lazy-items/         # Lazy load paginated data
+│   └── sso/                # SSO auth (login, callback, session, protected data)
 ├── components/             # Shared components (đều "use client")
 │   ├── navbar.tsx
 │   ├── push-noti.tsx
@@ -26,17 +29,24 @@ src/app/
 │   ├── spreadsheet.tsx
 │   ├── optimistic-crud.tsx
 │   ├── query-provider.tsx
-│   └── toast.tsx
+│   ├── toast.tsx
+│   ├── lazy-demo.tsx
+│   ├── lazy/               # Lazy-loaded modules (_heavy-widget, _heavy-processor)
+│   └── sso/                # SSO components (login-form, dashboard, session-banner, admin-panel, ...)
 ├── lib/                    # Shared logic
 │   ├── table-data.ts       # Types + mock data cho bảng ảo
 │   ├── items-store.ts      # In-memory CRUD store
-│   └── export-csv.ts       # CSV serialization
+│   ├── export-csv.ts       # CSV serialization
+│   ├── vapid.ts            # VAPID key generation
+│   ├── subscription-store.ts # Push subscription store
+│   └── lazy-items.ts       # Mock data cho lazy loading
 ├── push/                   # Trang push notifications
 ├── upload/                 # Trang upload file
 ├── virtual/                # Trang bảng ảo
 ├── spreadsheet/            # Trang bảng tính
-└── optimistic/             # Trang CRUD lạc quan
+├── optimistic/             # Trang CRUD lạc quan
 ├── lazy-loading/           # Trang lazy loading demo
+└── sso/                    # Trang SSO (login, dashboard, admin, editor)
 ```
 
 ## Tài liệu tính năng
@@ -69,9 +79,10 @@ features/
 ├── optimistic-crud/
 │   ├── architecture.md           ← Kiến trúc CRUD: mutations, optimistic update, rollback
 │   └── usecases.md               ← 14 use cases: add/update/delete, rollback, toast, refetch, ...
-└── lazy-loading/
-    ├── architecture.md           ← Kiến trúc lazy loading: code-splitting, dynamic import, lazy images
-    └── usecases.md               ← 13 use cases: toggle widget, scroll images, import module, load more, ...
+├── lazy-loading/           # Trang lazy loading demo
+└── sso/
+    ├── architecture.md           ← Kiến trúc SSO: Auth.js v5 + Google/GitHub OAuth, role-based access, PWA offline session
+    └── usecases.md               ← 20 use cases: login, env role config, protected routes, role check, PWA offline, push+SSO
 ```
 
 ## Providers & wrapping order
@@ -102,6 +113,7 @@ features/
 | `/spreadsheet` | Bảng tính có thể chỉnh sửa, import/export CSV, gợi ý công thức | Không (client-only) |
 | `/optimistic` | CRUD với optimistic UI + rollback | `GET/POST/PUT /api/items`, `DELETE /api/items/[id]` |
 | `/lazy-loading` | Demo code-splitting, lazy images, dynamic import, load more | `GET /api/lazy-items` |
+| `/sso` | SSO với Google + GitHub OAuth (next-auth@beta), env-driven role assignment, protected routes | Auth.js built-in `/api/auth/[...nextauth]`, `GET /api/sso/protected-data`, `GET /api/sso/admin-data` |
 
 ## Các nguyên tắc thiết kế chung
 1. **Mọi component UI đều là "use client"** — import trực tiếp từ server component page

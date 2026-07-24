@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import SessionBanner from "./sso/session-banner";
 
 const links = [
   { href: "/", label: "Home" },
@@ -44,6 +45,7 @@ export default function Navbar() {
               </Link>
             </li>
           ))}
+          <SessionBanner />
         </ul>
       </nav>
     </header>

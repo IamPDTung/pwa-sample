@@ -55,6 +55,12 @@ export default function Home() {
           >
             Virtual Table
           </Link>
+          <Link
+            href="/sso"
+            className="px-5 py-2 rounded-full border border-violet-600 text-violet-600 text-sm font-medium hover:bg-violet-50 dark:hover:bg-violet-900/30 transition-colors"
+          >
+            SSO
+          </Link>
         </div>
       </main>
     </div>
