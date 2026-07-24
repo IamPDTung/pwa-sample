@@ -81,3 +81,4 @@
 - **Roles assigned via env email lists** — `SSO_ADMIN_EMAILS` and `SSO_EDITOR_EMAILS` (comma-separated), matched in JWT callback; unlisted emails get viewer role
 - **Role change requires re-login** — roles are written into JWT at sign-in; updating env vars only takes effect after sign out + sign in
 - **Next.js 16 uses `proxy.ts`** — renamed from `middleware.ts`; exports `auth as proxy` for edge route protection
+- **`AUTH_TRUST_HOST=true` required for localhost production** — in `next start` mode, Auth.js rejects untrusted hosts; set this env var or add `trustHost: true` to config
