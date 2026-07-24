@@ -164,3 +164,157 @@
 5. `Notification.permission` = "denied"
 
 **Kết quả mong đợi:** UI cập nhật trạng thái, các nút bị disabled, hiển thị message hướng dẫn.
+
+---
+
+## Web Push (BE → Browser)
+
+## UC-PUSH-11: Subscribe Web Push
+
+**Mô tả:** Người dùng đăng ký nhận push notification từ backend.
+
+**Điều kiện tiên quyết:** Permission granted, SW đã đăng ký.
+
+**Các bước:**
+1. Vào `/push`, permission = granted
+2. Xem section "Web Push (from Backend)"
+3. Click "Subscribe to Web Push"
+4. Frontend: `GET /api/push/vapid-key` → lấy VAPID public key
+5. Frontend: `reg.pushManager.subscribe({ applicationServerKey })` → đăng ký với browser push service
+6. Frontend: `POST /api/push/subscribe` → gửi subscription lên server
+7. Server lưu subscription vào memory store
+8. UI hiển thị "Subscribed to Web Push", nút chuyển thành "Unsubscribe"
+
+**Kết quả mong đợi:** Subscription được lưu trên server. Có thể nhận push từ BE.
+
+---
+
+## UC-PUSH-12: Gửi push từ Backend (browser đang mở)
+
+**Mô tả:** Backend gửi push notification, browser đang mở tab.
+
+**Điều kiện tiên quyết:** Đã subscribe Web Push.
+
+**Các bước:**
+1. Nhập title và body trong form Web Push
+2. Click "Send from Backend"
+3. `POST /api/push/send { title, body }`
+4. Server: `webpush.sendNotification(sub, payload)` → gửi đến FCM/Moz/APN
+5. Push service forward message đến browser
+6. SW nhận `push` event → gọi `showNotification()`
+7. Notification xuất hiện với title và body đã nhập
+
+**Kết quả mong đợi:** Notification hiển thị chính xác nội dung đã nhập từ BE.
+
+---
+
+## UC-PUSH-13: Gửi push từ Backend (browser đóng hoàn toàn)
+
+**Mô tả:** Backend gửi push notification khi không có tab browser nào mở.
+
+**Điều kiện tiên quyết:** Đã subscribe Web Push. Browser không chạy.
+
+**Các bước:**
+1. Subscribe Web Push
+2. Đóng tất cả tab PWA, đóng hoàn toàn browser (Exit Chrome/Edge)
+3. Dùng công cụ khác (Postman, curl) gọi `POST /api/push/send`
+4. Push service gửi message đến OS notification system
+5. OS hiển thị notification (Windows notification center, macOS Notification Center)
+6. Click notification → browser mở + tab PWA mở
+
+**Kết quả mong đợi:** Notification vẫn đến dù browser đã đóng hoàn toàn. Đây là điểm khác biệt lớn nhất so với SW interval.
+
+**Lưu ý:** Cần browser chạy nền (background service) — Chrome/Edge mặc định có. Một số OS (iOS Safari) có thể yêu cầu PWA đã được cài đặt.
+
+---
+
+## UC-PUSH-14: Unsubscribe Web Push
+
+**Mô tả:** Người dùng hủy đăng ký Web Push.
+
+**Các bước:**
+1. Đang subscribed → hiển thị nút "Unsubscribe"
+2. Click "Unsubscribe"
+3. Frontend: `subscription.unsubscribe()` → hủy với browser push service
+4. Frontend: `DELETE /api/push/subscribe?endpoint=...` → xóa trên server
+5. Nút chuyển thành "Subscribe to Web Push"
+6. Hiển thị "Unsubscribed from Web Push"
+
+**Kết quả mong đợi:** Subscription bị xóa cả phía client và server. Không còn nhận push.
+
+---
+
+## UC-PUSH-15: Subscription hết hạn — tự động cleanup
+
+**Mô tả:** Subscription trên push service hết hạn hoặc bị revoke, server tự động xóa.
+
+**Các bước:**
+1. Có subscription cũ trong store (ví dụ: từ session trước, VAPID key đã đổi)
+2. Gọi `POST /api/push/send`
+3. Push service trả về HTTP 410 Gone cho subscription cũ
+4. Server catch error → xóa subscription khỏi store
+5. Response: `{ ok: 0, gone: 1, error: 0 }`
+
+**Kết quả mong đợi:** Subscription lỗi thời bị xóa tự động. Store luôn sạch.
+
+---
+
+## UC-PUSH-16: Gửi push khi chưa subscribe
+
+**Mô tả:** Cố gắng gửi push nhưng chưa có subscription nào.
+
+**Các bước:**
+1. Chưa subscribe Web Push (hoặc đã unsubscribe)
+2. Click "Send from Backend"
+3. Server trả về 400: `{ error: "No subscriptions. Subscribe on the client first." }`
+
+**Kết quả mong đợi:** Thông báo rõ ràng yêu cầu subscribe trước.
+
+---
+
+## UC-PUSH-17: Notification click từ Web Push
+
+**Mô tả:** User click vào notification được gửi từ Web Push.
+
+**Các bước:**
+1. Web Push notification xuất hiện (tag: "web-push")
+2. Click vào notification
+3. SW xử lý `notificationclick` (dùng chung handler):
+   - Đóng notification
+   - Focus vào tab đang mở hoặc mở tab mới tại `/`
+
+**Kết quả mong đợi:** Hành vi giống với local notification click.
+
+---
+
+## UC-PUSH-18: VAPID key tự động tạo & persist
+
+**Mô tả:** VAPID keys được tự động generate khi server start và persist trong suốt lifetime.
+
+**Các bước:**
+1. Server start lần đầu → `webpush.generateVAPIDKeys()` → lưu vào `globalThis`
+2. HMR reload (dev mode) → module re-execute → keys đã có trong `globalThis` → không generate lại
+3. Client subscribe → dùng public key từ `globalThis`
+4. Server restart → keys mới được generate (subscription cũ mất hiệu lực)
+
+**Kết quả mong đợi:** Keys không đổi trong dev HMR loop. Subscription không bị invalid khi code thay đổi.
+
+**Lưu ý:** Production nên lưu VAPID keys trong biến môi trường (env vars) để không bị thay đổi giữa các lần deploy.
+
+---
+
+## UC-PUSH-19: End-to-end flow: subscribe → close browser → push → receive
+
+**Mô tả:** Test đầy đủ flow Web Push từ subscribe đến nhận notification.
+
+**Điều kiện tiên quyết:** Permission granted.
+
+**Các bước:**
+1. Subscribe Web Push (UC-PUSH-11)
+2. Gửi 1 push để verify (UC-PUSH-12) → nhận notification OK
+3. Đóng hoàn toàn browser (Exit, không minimize)
+4. Gọi `curl -X POST http://localhost:3000/api/push/send -H "Content-Type: application/json" -d '{"title":"Test","body":"Browser closed!"}'`
+5. Đợi vài giây
+6. Notification xuất hiện trên desktop (Windows/macOS)
+
+**Kết quả mong đợi:** Push hoạt động xuyên suốt, kể cả khi browser đã đóng. Đây là điểm mạnh nhất của Web Push API.

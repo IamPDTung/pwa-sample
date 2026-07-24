@@ -8,7 +8,7 @@ export default function PushPage() {
           Push Notifications
         </h1>
         <p className="max-w-md text-lg text-zinc-500 dark:text-zinc-400">
-          Test local push notifications — no cloud service required.
+          Test local push notifications and Web Push from the backend — no cloud service required.
         </p>
         <PushNoti />
       </main>

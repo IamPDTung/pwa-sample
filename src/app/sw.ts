@@ -77,6 +77,29 @@ self.addEventListener("message", (event: ExtendableMessageEvent) => {
   }
 });
 
+self.addEventListener("push", (event: PushEvent) => {
+  let data: { title: string; body: string; icon?: string } = {
+    title: "PWA Notification",
+    body: "New push from backend",
+  };
+
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch {
+      data.body = event.data.text();
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon || "/icon-192.png",
+      tag: "web-push",
+    })
+  );
+});
+
 self.addEventListener("notificationclick", (event: NotificationEvent) => {
   event.notification.close();
   event.waitUntil(
