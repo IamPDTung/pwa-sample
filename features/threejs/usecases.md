@@ -1,98 +1,125 @@
 # Three.js — Các trường hợp sử dụng
 
-## UC-3D-01: Xem Car Viewer với 5 mẫu xe
+## UC-3D-01: Xem Car Viewer với 5 mẫu xe trên bản đồ cỏ
 
-**Mô tả:** Người dùng vào trang Three.js và thấy car viewer với 5 mẫu xe thể thao.
+**Mô tả:** Người dùng vào trang Three.js và thấy car viewer với 5 mẫu xe thể thao trên bản đồ xanh.
 
 **Các bước:**
 1. Vào `/threejs`
 2. Trang hiển thị skeleton "Loading 3D scene..." trong ~1-2 giây
-3. Canvas 3D hiển thị: xe Red Coupe màu đỏ trên mặt phẳng xám với studio lighting
-4. Bên dưới canvas: thanh selector với 5 thumbnail (màu sắc + tên xe)
-5. Active car (Red Coupe) được highlight với viền violet
-6. Xe tự xoay chậm (auto-rotate)
-7. Bóng đổ mềm (contact shadows) hiển thị dưới xe
+3. Canvas 500px hiển thị: xe Red Coupe trên bản đồ cỏ xanh 80×80
+4. Bản đồ có 35 cây (thân nâu + tán xanh) và 250 bụi cỏ rải rác
+5. Grid màu xanh đậm chia ô trên mặt đất
+6. Bên dưới canvas: thanh selector 5 thumbnail
+7. Camera ở góc nhìn từ trên cao, bám theo xe
 
-**Kết quả mong đợi:** Xe 3D hiển thị rõ ràng với studio lighting chuyên nghiệp. Thanh selector hoạt động.
+**Kết quả mong đợi:** Xe 3D + bản đồ cỏ + cây + cỏ hiển thị rõ ràng. Thanh selector hoạt động.
 
 ---
 
 ## UC-3D-02: Chọn mẫu xe khác
 
-**Mô tả:** Người dùng click vào thumbnail để đổi xe.
+**Mô tả:** Người dùng click vào thumbnail để đổi xe. Xe mới xuất hiện tại vị trí gốc (0,0).
 
 **Các bước:**
-1. Đang hiển thị Red Coupe
+1. Đang lái Red Coupe trên bản đồ
 2. Click "Blue Sedan" trong thanh selector
-3. Red Coupe biến mất, Blue Sedan xuất hiện (không animation transition)
-4. Thumbnail Blue Sedan được highlight violet, Red Coupe trở về bình thường
-5. Click tiếp "Yellow Racer"
-6. Xe đua vàng xuất hiện với spoiler đặc trưng
+3. Red Coupe biến mất, Blue Sedan xuất hiện tại (0, 0) hướng +Z
+4. Thumbnail Blue Sedan highlight violet
+5. Lái Blue Sedan đi một đoạn
+6. Click "Yellow Racer"
+7. Xe đua vàng xuất hiện tại (0, 0) với spoiler đặc trưng
 
-**Kết quả mong đợi:** Chuyển đổi xe tức thì. Highlight di chuyển theo xe đã chọn.
+**Kết quả mong đợi:** Chuyển đổi xe tức thì. Xe mới luôn bắt đầu tại gốc tọa độ.
 
 ---
 
-## UC-3D-03: Kéo chuột để xoay xe
+## UC-3D-03: Lái xe bằng phím mũi tên
 
-**Mô tả:** Người dùng drag chuột trái để xoay xe.
+**Mô tả:** Người dùng dùng arrow keys để lái xe quanh bản đồ.
 
 **Các bước:**
-1. Xe đang tự xoay (auto-rotate)
-2. Click chuột trái + giữ + kéo sang trái
-3. Xe xoay theo hướng kéo
-4. Auto-rotate tạm dừng trong khi kéo
-5. Thả chuột → dừng ở góc hiện tại, auto-rotate tiếp tục
+1. Nhấn `↑` — xe chạy thẳng về phía trước (hướng +Z)
+2. Nhấn giữ `↑` — xe tiếp tục chạy tốc độ 8u/s
+3. Nhấn `↓` — xe lùi ngược lại
+4. Camera tự động bám theo vị trí xe (lerp mượt)
 
-**Kết quả mong đợi:** Xe xoay mượt mà theo chuyển động chuột. Có thể nhìn mọi góc: trước, sau, hông, trên.
+**Kết quả mong đợi:** Xe phản hồi ngay với phím. ↑ = tiến, ↓ = lùi đúng hướng đầu xe.
 
 ---
 
-## UC-3D-04: Scroll để zoom
+## UC-3D-04: Lái xe trái/phải
 
-**Mô tả:** Người dùng scroll để phóng to/thu nhỏ xe.
+**Mô tả:** Người dùng dùng `←` `→` để lái xe sang trái/phải.
 
 **Các bước:**
-1. Scroll lên → zoom in, xe to dần (tối thiểu 4 units)
-2. Scroll xuống → zoom out, xe nhỏ dần (tối đa 14 units)
-3. Không thể zoom vào quá gần
+1. Nhấn `←` — xe xoay sang trái (CCW, rotation tăng)
+2. Nhấn đồng thời `←` + `↑` — xe vừa xoay trái vừa chạy (cua trái)
+3. Nhấn `→` + `↑` — xe cua phải
+4. Nhấn `↓` + `←` — xe vừa lùi vừa xoay
 
-**Kết quả mong đợi:** Zoom mượt mà với min/max distance limits.
+**Kết quả mong đợi:** Xe cua mượt, hướng di chuyển luôn là hướng đầu xe.
 
 ---
 
-## UC-3D-05: Right-click để pan
+## UC-3D-05: Va chạm với cây
 
-**Mô tả:** Người dùng di chuyển góc nhìn bằng right-click.
+**Mô tả:** Xe không thể đi xuyên qua cây trên bản đồ.
 
 **Các bước:**
-1. Right-click + giữ + kéo
-2. Camera di chuyển ngang/dọc, xe giữ vị trí tương đối
+1. Lái xe thẳng về phía một cái cây
+2. Khi xe chạm cây (distance < 3.3) → xe dừng lại, không đi xuyên qua
+3. Nhấn `←` hoặc `→` để xoay xe, sau đó `↑` để tránh cây
+4. Xe vẫn có thể xoay khi đứng sát cây (rotation không bị chặn)
 
-**Kết quả mong đợi:** Pan mượt mà.
+**Kết quả mong đợi:** Cây là chướng ngại vật. Xe phải lái vòng để tránh.
 
 ---
 
-## UC-3D-06: Nhìn các chi tiết xe
+## UC-3D-06: Đi xuyên qua cỏ
 
-**Mô tả:** Người dùng zoom-in và xoay để xem chi tiết từng mẫu xe.
+**Mô tả:** Xe có thể đi xuyên qua các bụi cỏ trên bản đồ.
 
 **Các bước:**
-1. Chọn Yellow Racer
-2. Zoom-in + xoay để nhìn từ phía sau → thấy spoiler
-3. Chọn Orange Muscle
-4. Zoom-in nhìn phía trước → thấy đèn pha (headlights) phát sáng vàng
-5. Xoay nhìn phía sau → thấy đèn hậu (taillights) đỏ
-6. Chọn Blue Sedan
-7. Nhìn từ hông → cabin kính màu đen, wheel hub xám
+1. Lái xe thẳng qua một vùng có nhiều bụi cỏ
+2. Xe đi xuyên qua cỏ bình thường, không bị chặn
+3. Cỏ vẫn hiển thị bình thường sau khi xe đi qua
 
-**Kết quả mong đợi:** Tất cả chi tiết (headlights, taillights, spoiler, wheels) hiển thị rõ khi zoom-in.
+**Kết quả mong đợi:** Cỏ là yếu tố trang trí, không ảnh hưởng đến chuyển động.
 
 ---
 
-## UC-3D-07: Code splitting — bundle chỉ tải khi vào trang
+## UC-3D-07: Camera bám theo xe
 
-**Mô tả:** Three.js + drei bundle được tách riêng, chỉ tải khi người dùng vào `/threejs`.
+**Mô tả:** Camera tự động di chuyển theo xe với hiệu ứng lerp mượt.
+
+**Các bước:**
+1. Lái xe chạy thẳng về phía trước
+2. Camera từ từ trượt theo vị trí xe (factor 0.12)
+3. Kéo chuột để xoay camera quanh xe khi đang chạy
+4. Scroll để zoom gần/xa (5-30 units)
+5. Right-click + drag để pan camera
+
+**Kết quả mong đợi:** Camera luôn hướng về xe. Có thể tự do điều chỉnh góc nhìn khi xe đang chạy.
+
+---
+
+## UC-3D-08: Không rơi khỏi bản đồ
+
+**Mô tả:** Xe bị giới hạn trong phạm vi bản đồ 80×80.
+
+**Các bước:**
+1. Lái xe về phía rìa bản đồ
+2. Khi xe chạm rìa (cách biên 3 units) → dừng lại, không đi tiếp được
+3. Xoay xe và chạy hướng khác — bình thường
+
+**Kết quả mong đợi:** Xe luôn nằm trong bản đồ, không rơi ra ngoài.
+
+---
+
+## UC-3D-09: Code splitting — bundle chỉ tải khi vào trang
+
+**Mô tả:** Three.js bundle được tách riêng, chỉ tải khi người dùng vào `/threejs`.
 
 **Các bước:**
 1. Ở trang Home, mở DevTools → Network tab
@@ -100,38 +127,49 @@
 3. Click "Three.js" trong dropdown UI Animations
 4. Skeleton hiển thị "Loading 3D scene..."
 5. Network tab: thấy chunk .js của car-viewer được tải
-6. Bundle load xong → canvas hiển thị xe
+6. Bundle load xong → canvas hiển thị
 
 **Kết quả mong đợi:** Bundle Three.js không tải ở các trang khác.
 
 ---
 
-## UC-3D-08: Tương tác trên mobile (touch)
+## UC-3D-10: Tương tác trên mobile (touch)
 
-**Mô tả:** Người dùng chọn xe và xoay trên điện thoại/tablet.
+**Mô tả:** Người dùng chọn xe và xem trên điện thoại/tablet.
 
 **Các bước:**
 1. Mở `/threejs` trên thiết bị di động
-2. Canvas + selector hiển thị trong viewport mobile (responsive)
-3. Swipe selector nếu nhiều xe (flex-wrap)
-4. 1 ngón swipe trên canvas → xoay xe
-5. 2 ngón pinch → zoom
-6. 2 ngón drag → pan
-7. Click thumbnail → đổi xe
+2. Canvas + selector hiển thị responsive
+3. Touch drag để xoay camera
+4. Pinch để zoom
+5. Không có arrow keys trên mobile — người dùng chỉ xem và xoay camera
 
 **Kết quả mong đợi:** Touch gesture hoạt động mượt mà.
 
 ---
 
-## UC-3D-09: Performance — FPS ổn định
+## UC-3D-11: Nhìn chi tiết xe
 
-**Mô tả:** Scene 3D chạy mượt mà ở 60fps.
+**Mô tả:** Người dùng zoom-in để xem chi tiết từng mẫu xe.
+
+**Các bước:**
+1. Chọn Yellow Racer → scroll zoom-in → thấy spoiler sau
+2. Chọn Orange Muscle → nhìn phía trước → headlights phát sáng vàng
+3. Nhìn phía sau bất kỳ xe nào → taillights đỏ
+4. Nhìn từ hông → cabin kính đen, hub bánh xe xám
+
+**Kết quả mong đợi:** Tất cả chi tiết hiển thị rõ khi zoom-in.
+
+---
+
+## UC-3D-12: Performance — FPS ổn định
+
+**Mô tả:** Scene 3D chạy mượt mà với 35 cây + 250 bụi cỏ.
 
 **Các bước:**
 1. Vào `/threejs`
-2. Xe tự xoay mượt mà
-3. Click đổi xe liên tục → phản hồi ngay
-4. Kéo xoay → mượt, không lag
-5. Mở DevTools → FPS meter: 60fps ổn định
+2. Lái xe vòng quanh bản đồ
+3. Camera lerp mượt theo xe
+4. Mở DevTools → FPS meter: 60fps ổn định
 
-**Kết quả mong đợi:** 60fps ổn định. Mỗi xe chỉ có ~10 mesh primitives, rất nhẹ.
+**Kết quả mong đợi:** 60fps ổn định kể cả khi render 35 cây + 250 cỏ.

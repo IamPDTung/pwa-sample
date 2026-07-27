@@ -1,15 +1,17 @@
 # Three.js — Kiến trúc & Luồng hoạt động
 
 ## Tổng quan
-Trang `/threejs` hiển thị một **car viewer** với 5 mẫu xe thể thao built từ Three.js primitives (box, cylinder). Người dùng có thể chọn xe từ thanh selector, xoay, zoom, pan. Studio lighting via `@react-three/drei`.
+Trang `/threejs` là một **car viewer + driving game** với 5 mẫu xe thể thao built từ Three.js primitives. Người dùng chọn xe, lái bằng phím mũi tên trên bản đồ xanh 80×80 có cây (chướng ngại) và cỏ (đi xuyên qua). Camera bám theo xe mượt mà.
 
 ## Mục tiêu kỹ thuật
 - **5 mẫu xe thể thao** — Coupe, Sedan, Hatchback, Muscle, Racing — built từ box/cylinder primitives
 - **Car selector** — thanh thumbnail bên dưới canvas, click để đổi xe
-- **Tương tác** — OrbitControls: rotate, zoom, pan; auto-rotate khi idle
-- **Studio lighting** — `<Environment preset="studio" />` + spot lights + contact shadows
+- **Arrow-key driving** — ↑ tiến, ↓ lùi, ←→ lái trái/phải, tốc độ 8u/s, xoay 3rad/s
+- **Bản đồ 80×80** — nền cỏ xanh, grid, 35 cây, 250 bụi cỏ
+- **Tree collision** — xe không thể đi xuyên cây (car radius 2.0 + tree radius 1.3)
+- **Grass passable** — xe đi xuyên qua cỏ bình thường
+- **Camera follow** — OrbitControls target lerp theo vị trí xe (0.12 factor)
 - **Code splitting** — toàn bộ Three.js bundle chỉ tải khi vào trang (`next/dynamic` + `ssr: false`)
-- **Responsive** — Canvas 450px cao, max-w-3xl
 
 ## Cấu trúc file
 
@@ -17,81 +19,165 @@ Trang `/threejs` hiển thị một **car viewer** với 5 mẫu xe thể thao b
 |---|---|
 | `src/app/threejs/page.tsx` | Server component: title + description + `<ThreeJSLoader />` |
 | `src/app/components/threejs-loader.tsx` | Client component wrapper: `next/dynamic(ssr: false)` với skeleton loading |
-| `src/app/components/car-viewer.tsx` | Client component: `<Canvas>` R3F, car models, selector, controls, environment |
+| `src/app/components/car-viewer.tsx` | Client component: `<Canvas>` R3F, car models, selector, driving, map, controls |
 
 ## Các gói sử dụng
 
 | Gói | Vai trò |
 |---|---|
 | `three` | Thư viện 3D gốc: geometries, materials, lights, shadows |
-| `@react-three/fiber` | React renderer: `<Canvas>`, hooks (`useThree`) |
-| `@react-three/drei` | Utility helpers: `<Environment>`, `<ContactShadows>` |
+| `@react-three/fiber` | React renderer: `<Canvas>`, hooks (`useThree`, `useFrame`) |
 | `@types/three` | TypeScript type definitions |
 
 ## 5 mẫu xe
 
-| # | Tên | Màu | Body (WxHxD) | Cabin | Wheel R | Đặc điểm |
-|---|---|---|---|---|---|---|
-| 1 | Red Coupe | `#dc2626` | 2.8 x 0.8 x 1.3 | 1.0 x 0.5, z:-0.35 | 0.32 | Dáng thấp, cabin lùi sau |
-| 2 | Blue Sedan | `#2563eb` | 3.2 x 0.75 x 1.25 | 1.3 x 0.55, z:-0.1 | 0.30 | Dài nhất, cabin giữa |
-| 3 | Green Hatch | `#16a34a` | 2.5 x 0.85 x 1.2 | 1.2 x 0.6, z:-0.3 | 0.28 | Ngắn, cao, cabin lớn |
-| 4 | Orange Muscle | `#ea580c` | 3.6 x 0.7 x 1.35 | 0.9 x 0.45, z:-0.8 | 0.35 | Mũi dài, cabin nhỏ lùi xa |
-| 5 | Yellow Racer | `#eab308` | 2.8 x 0.55 x 1.2 | 0.8 x 0.35, z:-0.5 | 0.30 | Cực thấp, spoiler sau |
+| # | Tên | Màu | Body (WxHxD) | Cabin | Wheel R | wheelY | Đặc điểm |
+|---|---|---|---|---|---|---|---|
+| 1 | Red Coupe | `#dc2626` | 2.8 × 0.8 × 1.3 | 1.0 × 0.5, z:-0.35 | 0.32 | -0.4 | Dáng thấp, cabin lùi sau |
+| 2 | Blue Sedan | `#2563eb` | 3.2 × 0.75 × 1.25 | 1.3 × 0.55, z:-0.1 | 0.30 | -0.38 | Dài nhất, cabin giữa |
+| 3 | Green Hatch | `#16a34a` | 2.5 × 0.85 × 1.2 | 1.2 × 0.6, z:-0.3 | 0.28 | -0.42 | Ngắn, cao, cabin lớn |
+| 4 | Orange Muscle | `#ea580c` | 3.6 × 0.7 × 1.35 | 0.9 × 0.45, z:-0.8 | 0.35 | -0.35 | Mũi dài, cabin nhỏ lùi xa |
+| 5 | Yellow Racer | `#eab308` | 2.8 × 0.55 × 1.2 | 0.8 × 0.35, z:-0.5 | 0.30 | -0.28 | Cực thấp, spoiler sau |
+
+## Vị trí xe trên mặt đất
+
+Mặt đất nằm ở y = -1.2. Xe được đặt sao cho **đáy bánh xe chạm mặt đất**:
+
+```ts
+carY = -1.2 - design.wheelY + design.wheelR
+```
+
+Ví dụ coupe: carY = -1.2 - (-0.4) + 0.32 = -0.48
 
 ## Cấu trúc xe (CarModel)
 
 Mỗi xe gồm:
 ```
-group
+group (position, rotationY + PI/2 offset quay về +Z)
 ├── body mesh (boxGeometry) — thân xe, castShadow
 ├── cabin mesh (boxGeometry) — kính cabin, màu #111
 ├── headlights ×2 — box nhỏ phía trước, emissive #ffa
 ├── taillights ×2 — box nhỏ phía sau, emissive #f00
-├── wheels ×4 (group)
+├── wheels ×4 (group quay PI/2 trên X)
 │   ├── cylinder tire (đen, roughness 0.7)
 │   └── cylinder hub (xám, metalness 0.4)
-└── spoiler (optional, chỉ racing) — box phía sau
+└── spoiler (chỉ racing) — box phía sau
 ```
 
-## Luồng hoạt động
+## Hướng xe (rotation)
 
-### 1. Code splitting
+- Xe được built với **đầu hướng +X** (headlights tại +body.w/2)
+- `rotationY + Math.PI/2` offset quay xe về **hướng +Z** (forward trên màn hình khi rotationY=0)
+- ↑ tiến theo +Z, ↓ lùi theo -Z
+- ← tăng rotation → lái trái, → giảm rotation → lái phải
+
+## Bản đồ & Môi trường
+
+### Map
+- **Ground**: `planeGeometry 80×80`, màu xanh cỏ `#5a8f3c`, roughness 0.95
+- **Grid**: `gridHelper 80×80`, màu `#4a7a30`
+
+### Cây (35 cây)
+- **Trunk**: `cylinderGeometry` màu nâu `#6b4226`, cao 2.5×scale
+- **Canopy**: `coneGeometry` màu xanh đậm `#2d5a1e`, bán kính 1.2×scale
+- Collision: `Math.hypot(tree.x - car.x, tree.z - car.z) < CAR_RADIUS + TREE_RADIUS`
+
+### Cỏ (250 bụi)
+- 3 `planeGeometry` màu xanh khác nhau (`#4a8c2a`, `#3d7a20`, `#55992e`) đặt chéo nhau
+- `DoubleSide` rendering để thấy từ mọi góc
+- Không có collision — xe đi xuyên qua
+
+### Sinh vị trí
+- Seeded random với `seed = 42` → deterministic
+- Clear zone 6×6 quanh gốc tọa độ (xe khởi đầu)
+- Cây cách nhau tối thiểu 4 units
+
+## Driving system
+
+### State
+```ts
+type CarState = { x: number; z: number; rotation: number }
+const [car, setCar] = useState<CarState>({ x: 0, z: 0, rotation: 0 })
+```
+
+### Keyboard handler
+- `keydown` thêm phím vào `keysRef.current` (Set)
+- `keyup` xóa phím khỏi Set
+- `useEffect` mount/unmount event listeners
+
+### Movement loop (`setInterval` 16ms)
+```ts
+setCar((c) => {
+  // Rotation
+  ArrowLeft  → rotation += 3 * 0.016
+  ArrowRight → rotation -= 3 * 0.016
+
+  // Forward vector (car faces +Z at rotation=0)
+  forwardZ = cos(rotation)
+  forwardX = sin(rotation)
+
+  // Movement
+  ArrowUp   → newX += forwardX * 8 * 0.016, newZ += forwardZ * 8 * 0.016
+  ArrowDown → newX -= ..., newZ -= ...
+
+  // Collision check
+  if treeCollides(newX, newZ) → revert to old position
+})
+```
+
+### Collision detection
+```ts
+function treeCollides(x, z) {
+  return trees.some(t => Math.hypot(t.x - x, t.z - z) < CAR_RADIUS + TREE_RADIUS)
+}
+```
+- `CAR_RADIUS = 2.0`, `TREE_RADIUS = 1.3`
+- Chỉ chặn di chuyển position — rotation vẫn hoạt động khi đứng sát cây
+- Clamp trong phạm vi bản đồ (`±HALF_MAP - 3`)
+
+## Camera follow
+
+### Controls component
+```tsx
+function Controls({ x, z }) {
+  const targetPos = useRef(new Vector3(x, 0.3, z))
+
+  // Cập nhật targetPos.current mỗi render
+  targetPos.current.set(x, 0.3, z)
+
+  // OrbitControls tạo 1 lần với [camera, gl]
+  useEffect(() => {
+    const controls = new OrbitControls(camera, gl.domElement)
+    controls.autoRotate = false  // tắt auto-rotate — bám theo xe
+    controls.minDistance = 5
+    controls.maxDistance = 30
+    return () => controls.dispose()
+  }, [camera, gl])
+
+  // Lerp target theo xe mỗi frame
+  useFrame(() => { controls.target.lerp(targetPos.current, 0.12) })
+}
+```
+
+### Camera params
+- Starting position: `[6, 10, 12]`, fov: 50
+- Target: lerp về `[car.x, 0.3, car.z]` factor 0.12
+- Distance: 5–30, maxPolarAngle: PI/2.5
+
+## Ánh sáng
+| Loại | Vị trí | Cường độ | Vai trò |
+|---|---|---|---|
+| `ambientLight` | — | 0.6 | Ánh sáng nền |
+| `directionalLight` | [20, 30, 20] | 1.5 | Ánh sáng chính, có shadow (2048×2048 map) |
+| `directionalLight` | [-10, 15, -10] | 0.6 | Fill light |
+| `pointLight` | [0, 15, 0] #c4b5fd | 0.4 | Đèn violet phụ |
+
+## Code splitting flow
 ```
 Người dùng vào /threejs
   → page.tsx (Server Component): title + skeleton
   → threejs-loader.tsx (Client Component) mount
   → dynamic(() => import("./car-viewer")) bắt đầu
-  → Skeleton "Loading 3D scene..." (animate-pulse)
+  → Skeleton "Loading 3D scene..." (animate-pulse, 450px)
   → Bundle load xong → <Canvas> render
 ```
-
-### 2. Canvas setup
-```tsx
-<Canvas shadows camera={{ position: [6, 3, 6], fov: 40 }} style={{ height: 450 }}>
-  <Environment preset="studio" />
-  <spotLight position={[10, 10, 10]} intensity={2} castShadow />
-  <spotLight position={[-5, 8, -5]} intensity={1.2} />
-  <ContactShadows position={[0, -1.2, 0]} opacity={0.4} scale={10} />
-  <CarModel design={selected} />
-  <Controls />
-</Canvas>
-```
-
-### 3. Car selector
-```tsx
-const [selected, setSelected] = useState(cars[0]);
-// Thanh thumbnail bên dưới canvas
-// Click → setSelected(car) → CarModel re-render với design mới
-```
-
-### 4. OrbitControls
-- Imperative creation trong useEffect (giống như cube scene)
-- `autoRotate: true`, `autoRotateSpeed: 1.5`
-- `minDistance: 4`, `maxDistance: 14`
-- `maxPolarAngle: PI/2.2` — giới hạn góc nhìn từ trên xuống (không lật ngược)
-
-### 5. Environment & Lighting
-- `<Environment preset="studio" />` — HDR environment map, tạo phản xạ metallic trên xe
-- 2 x `spotLight` — ánh sáng chính + fill light
-- `<ContactShadows>` — bóng đổ mềm dưới xe (không cần shadow map phức tạp)
-- `ambientLight intensity={0.3}` — ánh sáng nền
