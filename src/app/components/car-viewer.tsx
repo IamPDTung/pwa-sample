@@ -76,7 +76,14 @@ const MOVE_SPEED = 40;
 const ROTATE_SPEED = 20;
 const CAR_RADIUS = 2.0;
 const TREE_RADIUS = 1.3;
+const RING_RADIUS = 3.0;
+const RING_Y = 0.3;
+const RING_COUNT = 10;
+const RING_SPAWN_DISTANCE = 12;
 const CLAMP = (v: number) => Math.max(-HALF_MAP + 3, Math.min(HALF_MAP - 3, v));
+
+let ringIdSeq = 0;
+type RingData = { id: number; x: number; z: number };
 
 function seededRandom(seed: number) {
   let s = seed;
@@ -122,6 +129,77 @@ function treeCollides(x: number, z: number, trees: typeof envData.trees) {
   return trees.some((t) => Math.hypot(t.x - x, t.z - z) < CAR_RADIUS + TREE_RADIUS);
 }
 
+function spawnOneRing(
+  carX: number,
+  carZ: number,
+  trees: typeof envData.trees,
+  existing: RingData[],
+): RingData | null {
+  const range = HALF_MAP - 5;
+  let attempts = 0;
+  while (attempts < 200) {
+    attempts++;
+    const x = (Math.random() * 2 - 1) * range;
+    const z = (Math.random() * 2 - 1) * range;
+    if (Math.abs(x) < 6 && Math.abs(z) < 6) continue;
+    if (Math.hypot(carX - x, carZ - z) < RING_SPAWN_DISTANCE) continue;
+    if (
+      trees.some(
+        (t) => Math.hypot(t.x - x, t.z - z) < CAR_RADIUS + TREE_RADIUS + 2
+      )
+    )
+      continue;
+    if (
+      existing.some((r) => Math.hypot(r.x - x, r.z - z) < RING_SPAWN_DISTANCE)
+    )
+      continue;
+    return { id: ++ringIdSeq, x, z };
+  }
+  return null;
+}
+
+function spawnRings(count: number, trees: typeof envData.trees): RingData[] {
+  const rings: RingData[] = [];
+  for (let i = 0; i < count; i++) {
+    const found = spawnOneRing(0, 0, trees, rings);
+    if (found) rings.push(found);
+  }
+  return rings;
+}
+
+function playCollectSound(audioCtxRef: React.MutableRefObject<AudioContext | null>) {
+  if (!audioCtxRef.current) {
+    audioCtxRef.current = new AudioContext();
+  }
+  const ctx = audioCtxRef.current;
+  if (ctx.state === "suspended") {
+    ctx.resume();
+  }
+
+  const now = ctx.currentTime;
+
+  const osc1 = ctx.createOscillator();
+  const gain1 = ctx.createGain();
+  osc1.type = "sine";
+  osc1.frequency.value = 880;
+  gain1.gain.setValueAtTime(0.3, now);
+  gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+  osc1.connect(gain1).connect(ctx.destination);
+  osc1.start(now);
+  osc1.stop(now + 0.1);
+
+  const osc2 = ctx.createOscillator();
+  const gain2 = ctx.createGain();
+  osc2.type = "sine";
+  osc2.frequency.value = 660;
+  gain2.gain.setValueAtTime(0.01, now + 0.08);
+  gain2.gain.linearRampToValueAtTime(0.3, now + 0.12);
+  gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+  osc2.connect(gain2).connect(ctx.destination);
+  osc2.start(now + 0.08);
+  osc2.stop(now + 0.28);
+}
+
 const envData = generateEnvironment(42);
 
 function Wheel({ radius, color = "#1a1a1a" }: { radius: number; color?: string }) {
@@ -138,6 +216,30 @@ function Wheel({ radius, color = "#1a1a1a" }: { radius: number; color?: string }
     </group>
   );
 }
+
+function Ring3D({ x, z }: { x: number; z: number }) {
+  const meshRef = useRef<THREE.Group>(null!);
+
+  useFrame((_, delta) => {
+    meshRef.current.rotation.y += delta * 2.5;
+  });
+
+  return (
+    <group ref={meshRef} position={[x, RING_Y, z]}>
+      <mesh castShadow>
+        <torusGeometry args={[0.8, 0.12, 16, 32]} />
+        <meshStandardMaterial
+          color="#ffd700"
+          roughness={0.1}
+          metalness={0.8}
+          emissive="#ffa000"
+          emissiveIntensity={0.6}
+        />
+      </mesh>
+    </group>
+  );
+}
+
 
 function CarModel({
   design,
@@ -229,8 +331,8 @@ function Controls({ x, z }: { x: number; z: number }) {
     controls.autoRotate = false;
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
-    controls.minDistance = 5;
-    controls.maxDistance = 30;
+    controls.minDistance = 3;
+    controls.maxDistance = 20;
     controls.maxPolarAngle = Math.PI / 2.5;
     controlsRef.current = controls;
 
@@ -299,7 +401,15 @@ function GrassPatch({ x, z, scale }: { x: number; z: number; scale: number }) {
   );
 }
 
-function Scene({ design, car }: { design: CarDef; car: CarState }) {
+function Scene({
+  design,
+  car,
+  rings,
+}: {
+  design: CarDef;
+  car: CarState;
+  rings: RingData[];
+}) {
   const { x, z, rotation } = car;
 
   return (
@@ -329,6 +439,10 @@ function Scene({ design, car }: { design: CarDef; car: CarState }) {
       ))}
       {envData.trees.map((t, i) => (
         <Tree key={`t-${i}`} x={t.x} z={t.z} scale={t.scale} />
+      ))}
+
+      {rings.map((r) => (
+        <Ring3D key={r.id} x={r.x} z={r.z} />
       ))}
 
       <Controls x={x} z={z} />
@@ -376,7 +490,10 @@ type CarState = { x: number; z: number; rotation: number };
 export default function CarViewer() {
   const [selected, setSelected] = useState(cars[0]);
   const [car, setCar] = useState<CarState>({ x: 0, z: 0, rotation: 0 });
+  const [ringCount, setRingCount] = useState(0);
+  const [rings, setRings] = useState<RingData[]>(() => spawnRings(RING_COUNT, envData.trees));
   const keysRef = useRef(new Set<string>());
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
@@ -447,6 +564,33 @@ export default function CarViewer() {
     return () => clearInterval(id);
   }, [moveCar]);
 
+  useEffect(() => {
+    const collected = rings.filter(
+      (r) =>
+        Math.hypot(r.x - car.x, r.z - car.z) < CAR_RADIUS + RING_RADIUS
+    );
+    if (collected.length === 0) return;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRingCount((c) => c + collected.length);
+    playCollectSound(audioCtxRef);
+
+    setRings((prev) => {
+      let updated = prev.filter((r) => !collected.includes(r));
+      for (let i = 0; i < collected.length; i++) {
+        const replacement = spawnOneRing(
+          car.x,
+          car.z,
+          envData.trees,
+          updated,
+        );
+        if (replacement) updated = [...updated, replacement];
+      }
+      return updated;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [car]);
+
   const switchCar = (car: CarDef) => {
     setSelected(car);
     setCar({ x: 0, z: 0, rotation: 0 });
@@ -457,14 +601,14 @@ export default function CarViewer() {
       <div className="rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden shadow-sm">
         <Canvas
           shadows={{ type: THREE.PCFShadowMap }}
-          camera={{ position: [6, 10, 12], fov: 50 }}
+          camera={{ position: [4, 6, 8], fov: 50 }}
           style={{ height: 500, background: "#fafafa" }}
           gl={{ antialias: true }}
           onCreated={({ gl }) => {
             gl.shadowMap.type = THREE.PCFShadowMap;
           }}
         >
-          <Scene design={selected} car={car} />
+          <Scene design={selected} car={car} rings={rings} />
         </Canvas>
       </div>
 
@@ -478,6 +622,13 @@ export default function CarViewer() {
             onClick={() => switchCar(car)}
           />
         ))}
+      </div>
+
+      {/* Score */}
+      <div className="flex justify-center">
+        <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 font-semibold text-sm">
+          🏆 Rings: {ringCount}
+        </div>
       </div>
 
       {/* Instructions */}
