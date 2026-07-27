@@ -3,6 +3,13 @@ import withSerwistInit from "@serwist/next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["fs", "path"],
+  webpack: (config) => {
+    config.watchOptions = {
+      ...config.watchOptions,
+      ignored: /^(?!C:\/Users).*/, // ignore system files outside user dir
+    };
+    return config;
+  },
 };
 
 const withSerwist = withSerwistInit({
