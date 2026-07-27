@@ -97,7 +97,7 @@
 1. Lái xe chạy thẳng về phía trước
 2. Camera từ từ trượt theo vị trí xe (factor 0.12)
 3. Kéo chuột để xoay camera quanh xe khi đang chạy
-4. Scroll để zoom gần/xa (5-30 units)
+4. Scroll để zoom gần/xa (3-20 units)
 5. Right-click + drag để pan camera
 
 **Kết quả mong đợi:** Camera luôn hướng về xe. Có thể tự do điều chỉnh góc nhìn khi xe đang chạy.
@@ -173,3 +173,49 @@
 4. Mở DevTools → FPS meter: 60fps ổn định
 
 **Kết quả mong đợi:** 60fps ổn định kể cả khi render 35 cây + 250 cỏ.
+
+---
+
+## UC-3D-13: Thu thập nhẫn vàng trên bản đồ
+
+**Mô tả:** Người dùng lái xe đến vị trí nhẫn vàng để thu thập. Điểm tăng và nhẫn mới xuất hiện ở nơi khác.
+
+**Các bước:**
+1. Trên bản đồ có 10 nhẫn vàng (torus) nằm ngang, xoay tại chỗ, lơ lửng ở y=0.3
+2. Lái xe về phía một nhẫn vàng
+3. Khi xe chạm nhẫn (distance < 5.0) → nhẫn biến mất
+4. Điểm `🏆 Rings: N` tăng lên 1
+5. Nhẫn mới xuất hiện ở vị trí ngẫu nhiên khác (cách xa xe ≥12 units)
+6. Lặp lại — lái xe thu thập các nhẫn khác trên bản đồ
+
+**Kết quả mong đợi:** Nhẫn biến mất + điểm tăng + nhẫn mới spawn. Tổng nhẫn luôn = 10.
+
+---
+
+## UC-3D-14: Âm thanh "ting tong" khi thu thập nhẫn
+
+**Mô tả:** Khi xe chạm nhẫn, phát âm thanh 2 tông qua Web Audio API.
+
+**Các bước:**
+1. Bật âm thanh máy tính/loa
+2. Lái xe chạm một nhẫn
+3. Nghe âm "ting" (cao, 880Hz) → "tong" (thấp, 660Hz) trong ~280ms
+4. Chạm 2 nhẫn liên tiếp → mỗi lần phát âm thanh riêng
+
+**Kết quả mong đợi:** Âm thanh ting-tong rõ ràng, không bị chồng lấn, độ trễ thấp.
+
+---
+
+## UC-3D-15: Điểm tích lũy qua các lần đổi xe
+
+**Mô tả:** Điểm nhẫn không bị reset khi người dùng đổi xe.
+
+**Các bước:**
+1. Thu thập 3 nhẫn với Red Coupe → điểm = 3
+2. Click chọn Blue Sedan
+3. Điểm vẫn là 3
+4. Thu thập thêm 2 nhẫn với Blue Sedan → điểm = 5
+5. Click chọn Yellow Racer
+6. Điểm vẫn là 5
+
+**Kết quả mong đợi:** Điểm tích lũy toàn session, không mất khi đổi xe.

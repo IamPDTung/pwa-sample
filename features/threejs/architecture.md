@@ -1,7 +1,7 @@
 # Three.js — Kiến trúc & Luồng hoạt động
 
 ## Tổng quan
-Trang `/threejs` là một **car viewer + driving game** với 5 mẫu xe thể thao built từ Three.js primitives. Người dùng chọn xe, lái bằng phím mũi tên trên bản đồ xanh 80×80 có cây (chướng ngại) và cỏ (đi xuyên qua). Camera bám theo xe mượt mà.
+Trang `/threejs` là một **car viewer + driving game** với 5 mẫu xe thể thao built từ Three.js primitives. Người dùng chọn xe, lái bằng phím mũi tên trên bản đồ xanh 80×80 có cây (chướng ngại), cỏ (đi xuyên qua), và 10 nhẫn vàng (thu thập). Camera bám theo xe mượt mà. Khi xe chạm nhẫn, phát âm thanh "ting tong" qua Web Audio API và nhẫn mới xuất hiện ở vị trí ngẫu nhiên khác.
 
 ## Mục tiêu kỹ thuật
 - **5 mẫu xe thể thao** — Coupe, Sedan, Hatchback, Muscle, Racing — built từ box/cylinder primitives
@@ -11,6 +11,8 @@ Trang `/threejs` là một **car viewer + driving game** với 5 mẫu xe thể 
 - **Tree collision** — xe không thể đi xuyên cây (car radius 2.0 + tree radius 1.3)
 - **Grass passable** — xe đi xuyên qua cỏ bình thường
 - **Camera follow** — OrbitControls target lerp theo vị trí xe (0.12 factor)
+- **Ring collectible** — 10 nhẫn vàng (torus) rải trên bản đồ, thu thập để tăng điểm
+- **Sound effect** — Web Audio API synthesized "ting tong" (880Hz → 660Hz) khi chạm nhẫn
 - **Code splitting** — toàn bộ Three.js bundle chỉ tải khi vào trang (`next/dynamic` + `ssr: false`)
 
 ## Cấu trúc file
@@ -149,8 +151,8 @@ function Controls({ x, z }) {
   useEffect(() => {
     const controls = new OrbitControls(camera, gl.domElement)
     controls.autoRotate = false  // tắt auto-rotate — bám theo xe
-    controls.minDistance = 5
-    controls.maxDistance = 30
+    controls.minDistance = 3
+    controls.maxDistance = 20
     return () => controls.dispose()
   }, [camera, gl])
 
@@ -160,9 +162,67 @@ function Controls({ x, z }) {
 ```
 
 ### Camera params
-- Starting position: `[6, 10, 12]`, fov: 50
+- Starting position: `[4, 6, 8]`, fov: 50
 - Target: lerp về `[car.x, 0.3, car.z]` factor 0.12
-- Distance: 5–30, maxPolarAngle: PI/2.5
+- Distance: 3–20, maxPolarAngle: PI/2.5
+
+## Rings (nhẫn thu thập)
+
+### Ring model
+- `torusGeometry(0.8, 0.12, 16, 32)` — nhẫn vàng nhỏ, nằm ngang
+- Vật liệu emissive `#ffa000`, roughness 0.1, metalness 0.8
+- Vị trí Y = 0.3 (lơ lửng trên mặt đất)
+- Spinning animation: `rotation.y += delta * 2.5` (xoay như đồng xu)
+
+### State & spawn
+```ts
+type RingData = { id: number; x: number; z: number }
+const RING_COUNT = 10
+
+function spawnRings(count, trees): RingData[]  // sinh N nhẫn lúc khởi tạo
+function spawnOneRing(carX, carZ, trees, existing): RingData | null  // sinh 1 nhẫn mới
+```
+- Sinh vị trí ngẫu nhiên (`Math.random()`, không seeded)
+- Tránh vùng origin 6×6, cây (CAR_RADIUS + TREE_RADIUS + 2), các nhẫn khác
+- Cách xe tối thiểu 12 units (`RING_SPAWN_DISTANCE`)
+- Mỗi nhẫn có `id` tăng dần để làm React key
+
+### Collision & thu thập
+```ts
+useEffect(() => {
+  const collected = rings.filter(
+    (r) => Math.hypot(r.x - car.x, r.z - car.z) < CAR_RADIUS + RING_RADIUS
+  );
+  if (collected.length > 0) {
+    setRingCount(c => c + collected.length);
+    playCollectSound(audioCtxRef);
+    setRings(prev => {
+      let updated = prev.filter(r => !collected.includes(r));
+      for (let i = 0; i < collected.length; i++) {
+        const rep = spawnOneRing(car.x, car.z, trees, updated);
+        if (rep) updated = [...updated, rep];
+      }
+      return updated;
+    });
+  }
+}, [car]);
+```
+- `CAR_RADIUS = 2.0`, `RING_RADIUS = 3.0`
+- Khi thu thập: tăng điểm, phát âm thanh, xóa nhẫn cũ, sinh nhẫn mới
+
+### Sound effect (Web Audio API)
+```ts
+function playCollectSound(audioCtxRef) {
+  // AudioContext lazy init (tránh autoplay policy)
+  const osc1 = oscillator(880Hz Sine, 0.3→0 gain trong 100ms)
+  const osc2 = oscillator(660Hz Sine, 0→0.3→0 gain trong 200ms, delay 80ms)
+  // Kết quả: âm "ting" cao → "tong" thấp
+}
+```
+
+### Score UI
+- Badge `🏆 Rings: N` màu amber, hiển thị bên dưới car selector
+- Điểm tích lũy, không reset khi đổi xe
 
 ## Ánh sáng
 | Loại | Vị trí | Cường độ | Vai trò |
