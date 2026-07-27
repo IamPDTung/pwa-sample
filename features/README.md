@@ -46,6 +46,7 @@ src/app/
 ├── spreadsheet/            # Trang bảng tính
 ├── optimistic/             # Trang CRUD lạc quan
 ├── lazy-loading/           # Trang lazy loading demo
+├── threejs/                # Trang Three.js 3D cube tương tác
 └── sso/                    # Trang SSO (login, dashboard, admin, editor)
 ```
 
@@ -80,6 +81,9 @@ features/
 │   ├── architecture.md           ← Kiến trúc CRUD: mutations, optimistic update, rollback
 │   └── usecases.md               ← 14 use cases: add/update/delete, rollback, toast, refetch, ...
 ├── lazy-loading/           # Trang lazy loading demo
+├── threejs/
+│   ├── architecture.md           ← Kiến trúc Three.js: R3F + WebGL, OrbitControls
+│   └── usecases.md               ← 9 use cases: xoay, zoom, pan, auto-rotate, mobile, dark mode
 └── sso/
     ├── architecture.md           ← Kiến trúc SSO: Auth.js v5 + Google/GitHub OAuth, role-based access, PWA offline session
     └── usecases.md               ← 20 use cases: login, env role config, protected routes, role check, PWA offline, push+SSO
@@ -113,6 +117,7 @@ features/
 | `/spreadsheet` | Bảng tính có thể chỉnh sửa, import/export CSV, gợi ý công thức | Không (client-only) |
 | `/optimistic` | CRUD với optimistic UI + rollback | `GET/POST/PUT /api/items`, `DELETE /api/items/[id]` |
 | `/lazy-loading` | Demo code-splitting, lazy images, dynamic import, load more | `GET /api/lazy-items` |
+| `/threejs` | Khối lập phương 3D tương tác (Three.js + @react-three/fiber) | Không (client-only) |
 | `/sso` | SSO với Google + GitHub OAuth (next-auth@beta), env-driven role assignment, protected routes | Auth.js built-in `/api/auth/[...nextauth]`, `GET /api/sso/protected-data`, `GET /api/sso/admin-data` |
 
 ## Các nguyên tắc thiết kế chung
