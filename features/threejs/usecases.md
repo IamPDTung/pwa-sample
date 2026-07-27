@@ -1,124 +1,125 @@
 # Three.js — Các trường hợp sử dụng
 
-## UC-3D-01: Xem khối lập phương 3D
+## UC-3D-01: Xem Car Viewer với 5 mẫu xe
 
-**Mô tả:** Người dùng vào trang Three.js và thấy khối lập phương 3D.
+**Mô tả:** Người dùng vào trang Three.js và thấy car viewer với 5 mẫu xe thể thao.
 
 **Các bước:**
 1. Vào `/threejs`
 2. Trang hiển thị skeleton "Loading 3D scene..." trong ~1-2 giây
-3. Canvas 3D hiển thị: cube màu tím trên mặt phẳng xám
-4. Lưới (grid) và trục tọa độ (axes) hiển thị bên dưới
-5. Cube tự xoay chậm (auto-rotate)
-6. Bóng đổ của cube hiển thị trên mặt đất
+3. Canvas 3D hiển thị: xe Red Coupe màu đỏ trên mặt phẳng xám với studio lighting
+4. Bên dưới canvas: thanh selector với 5 thumbnail (màu sắc + tên xe)
+5. Active car (Red Coupe) được highlight với viền violet
+6. Xe tự xoay chậm (auto-rotate)
+7. Bóng đổ mềm (contact shadows) hiển thị dưới xe
 
-**Kết quả mong đợi:** Cube 3D màu violet hiển thị rõ ràng với ánh sáng và bóng đổ tự nhiên.
+**Kết quả mong đợi:** Xe 3D hiển thị rõ ràng với studio lighting chuyên nghiệp. Thanh selector hoạt động.
 
 ---
 
-## UC-3D-02: Kéo chuột để xoay cube
+## UC-3D-02: Chọn mẫu xe khác
 
-**Mô tả:** Người dùng drag chuột trái để xoay khối lập phương.
+**Mô tả:** Người dùng click vào thumbnail để đổi xe.
 
 **Các bước:**
-1. Cube đang tự xoay (auto-rotate)
+1. Đang hiển thị Red Coupe
+2. Click "Blue Sedan" trong thanh selector
+3. Red Coupe biến mất, Blue Sedan xuất hiện (không animation transition)
+4. Thumbnail Blue Sedan được highlight violet, Red Coupe trở về bình thường
+5. Click tiếp "Yellow Racer"
+6. Xe đua vàng xuất hiện với spoiler đặc trưng
+
+**Kết quả mong đợi:** Chuyển đổi xe tức thì. Highlight di chuyển theo xe đã chọn.
+
+---
+
+## UC-3D-03: Kéo chuột để xoay xe
+
+**Mô tả:** Người dùng drag chuột trái để xoay xe.
+
+**Các bước:**
+1. Xe đang tự xoay (auto-rotate)
 2. Click chuột trái + giữ + kéo sang trái
-3. Cube xoay theo hướng kéo (OrbitControls rotate)
+3. Xe xoay theo hướng kéo
 4. Auto-rotate tạm dừng trong khi kéo
-5. Thả chuột → cube dừng ở góc hiện tại, auto-rotate tiếp tục
+5. Thả chuột → dừng ở góc hiện tại, auto-rotate tiếp tục
 
-**Kết quả mong đợi:** Cube xoay mượt mà theo chuyển động chuột.
+**Kết quả mong đợi:** Xe xoay mượt mà theo chuyển động chuột. Có thể nhìn mọi góc: trước, sau, hông, trên.
 
 ---
 
-## UC-3D-03: Scroll để zoom
+## UC-3D-04: Scroll để zoom
 
-**Mô tả:** Người dùng scroll để phóng to/thu nhỏ.
+**Mô tả:** Người dùng scroll để phóng to/thu nhỏ xe.
 
 **Các bước:**
-1. Scroll lên (hoặc pinch-out trên trackpad) → zoom in, cube to dần
-2. Scroll xuống (pinch-in) → zoom out, cube nhỏ dần
-3. Không thể zoom quá gần (< 3 units từ tâm)
-4. Không thể zoom quá xa (> 12 units từ tâm)
+1. Scroll lên → zoom in, xe to dần (tối thiểu 4 units)
+2. Scroll xuống → zoom out, xe nhỏ dần (tối đa 14 units)
+3. Không thể zoom vào quá gần
 
-**Kết quả mong đợi:** Zoom hoạt động mượt mà với giới hạn min/max distance.
+**Kết quả mong đợi:** Zoom mượt mà với min/max distance limits.
 
 ---
 
-## UC-3D-04: Right-click để pan
+## UC-3D-05: Right-click để pan
 
 **Mô tả:** Người dùng di chuyển góc nhìn bằng right-click.
 
 **Các bước:**
 1. Right-click + giữ + kéo
-2. Camera di chuyển ngang/dọc, cube trượt theo
-3. Grid và mặt đất di chuyển cùng camera
-4. Thả chuột → dừng pan, auto-rotate tiếp tục
+2. Camera di chuyển ngang/dọc, xe giữ vị trí tương đối
 
-**Kết quả mong đợi:** Pan mượt mà, camera di chuyển trong không gian 2D.
+**Kết quả mong đợi:** Pan mượt mà.
 
 ---
 
-## UC-3D-05: Auto-rotate khi không tương tác
+## UC-3D-06: Nhìn các chi tiết xe
 
-**Mô tả:** Cube tự xoay chậm khi người dùng không tương tác.
+**Mô tả:** Người dùng zoom-in và xoay để xem chi tiết từng mẫu xe.
 
 **Các bước:**
-1. Mở trang, không chạm vào canvas
-2. Cube xoay chậm quanh trục Y với tốc độ 1.2 rad/s
-3. Di chuyển con trỏ ra khỏi vùng canvas
-4. Cube vẫn tiếp tục tự xoay
-5. Sau vài giây → cube đã xoay được 1 vòng
+1. Chọn Yellow Racer
+2. Zoom-in + xoay để nhìn từ phía sau → thấy spoiler
+3. Chọn Orange Muscle
+4. Zoom-in nhìn phía trước → thấy đèn pha (headlights) phát sáng vàng
+5. Xoay nhìn phía sau → thấy đèn hậu (taillights) đỏ
+6. Chọn Blue Sedan
+7. Nhìn từ hông → cabin kính màu đen, wheel hub xám
 
-**Kết quả mong đợi:** Auto-rotate hoạt động liên tục, dừng trong lúc user kéo, tiếp tục sau khi thả.
+**Kết quả mong đợi:** Tất cả chi tiết (headlights, taillights, spoiler, wheels) hiển thị rõ khi zoom-in.
 
 ---
 
-## UC-3D-06: Code splitting — bundle chỉ tải khi vào trang
+## UC-3D-07: Code splitting — bundle chỉ tải khi vào trang
 
-**Mô tả:** Three.js bundle được tách riêng, chỉ tải khi người dùng vào `/threejs`.
+**Mô tả:** Three.js + drei bundle được tách riêng, chỉ tải khi người dùng vào `/threejs`.
 
 **Các bước:**
 1. Ở trang Home, mở DevTools → Network tab
 2. Lọc JS, refresh → không thấy file three.js
 3. Click "Three.js" trong dropdown UI Animations
 4. Skeleton hiển thị "Loading 3D scene..."
-5. Network tab: thấy chunk .js của threejs-scene được tải
-6. Bundle load xong → canvas hiển thị
+5. Network tab: thấy chunk .js của car-viewer được tải
+6. Bundle load xong → canvas hiển thị xe
 
-**Kết quả mong đợi:** Bundle Three.js không được tải ở các trang khác, chỉ tải khi vào `/threejs`.
+**Kết quả mong đợi:** Bundle Three.js không tải ở các trang khác.
 
 ---
 
-## UC-3D-07: Tương tác trên mobile (touch)
+## UC-3D-08: Tương tác trên mobile (touch)
 
-**Mô tả:** Người dùng tương tác với cube trên điện thoại/tablet.
+**Mô tả:** Người dùng chọn xe và xoay trên điện thoại/tablet.
 
 **Các bước:**
 1. Mở `/threejs` trên thiết bị di động
-2. Canvas hiển thị trong viewport mobile (responsive)
-3. 1 ngón tay swipe → xoay cube
-4. 2 ngón pinch → zoom in/out
-5. 2 ngón drag → pan
+2. Canvas + selector hiển thị trong viewport mobile (responsive)
+3. Swipe selector nếu nhiều xe (flex-wrap)
+4. 1 ngón swipe trên canvas → xoay xe
+5. 2 ngón pinch → zoom
+6. 2 ngón drag → pan
+7. Click thumbnail → đổi xe
 
-**Kết quả mong đợi:** Touch gesture hoạt động mượt mà (OrbitControls hỗ trợ touch mặc định).
-
----
-
-## UC-3D-08: Dark mode — giao diện nhất quán
-
-**Mô tả:** Trang Three.js hiển thị đúng trong cả light và dark mode.
-
-**Các bước:**
-1. Mở `/threejs` ở light mode
-2. Nền trang: `bg-zinc-50`, text: `text-zinc-900`, mô tả: `text-zinc-500`
-3. Border canvas: `border-zinc-200`
-4. Chuyển sang dark mode (OS setting hoặc class)
-5. Nền trang: `dark:bg-zinc-950`, text: `dark:text-zinc-50`
-6. Border canvas: `dark:border-zinc-700`
-7. Canvas nền: `#fafafa` (không đổi — giữ trắng cho dễ nhìn 3D)
-
-**Kết quả mong đợi:** Giao diện đồng nhất với theme hệ thống, canvas luôn dễ nhìn.
+**Kết quả mong đợi:** Touch gesture hoạt động mượt mà.
 
 ---
 
@@ -128,10 +129,9 @@
 
 **Các bước:**
 1. Vào `/threejs`
-2. Cube tự xoay mượt mà, không giật lag
-3. Kéo xoay → phản hồi ngay, không delay
-4. Scroll zoom → mượt, không nhảy bước
-5. Mở DevTools → Performance → FPS meter: 60fps ổn định
-6. Scene đơn giản (1 cube + 1 ground + 3 lights) → nhẹ, không ngốn GPU
+2. Xe tự xoay mượt mà
+3. Click đổi xe liên tục → phản hồi ngay
+4. Kéo xoay → mượt, không lag
+5. Mở DevTools → FPS meter: 60fps ổn định
 
-**Kết quả mong đợi:** 60fps ổn định trên desktop. Mobile >30fps.
+**Kết quả mong đợi:** 60fps ổn định. Mỗi xe chỉ có ~10 mesh primitives, rất nhẹ.

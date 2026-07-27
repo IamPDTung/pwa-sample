@@ -64,12 +64,13 @@ export default function ThreeJSScene() {
   return (
     <div className="w-full max-w-2xl mx-auto rounded-xl border border-zinc-200 dark:border-zinc-700 overflow-hidden shadow-sm">
       <Canvas
-        shadows
+        shadows={{ type: THREE.PCFShadowMap }}
         camera={{ position: [4, 3, 6], fov: 45 }}
         style={{ height: 500 }}
         gl={{ antialias: true }}
         onCreated={({ gl }) => {
           gl.setClearColor(new THREE.Color("#fafafa"));
+          gl.shadowMap.type = THREE.PCFShadowMap;
         }}
       >
         <ambientLight intensity={0.4} />
