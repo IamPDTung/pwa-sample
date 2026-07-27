@@ -36,6 +36,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
+      authorization: "https://accounts.google.com/o/oauth2/v2/auth",
+      token: "https://oauth2.googleapis.com/token",
+      userinfo: "https://openidconnect.googleapis.com/v1/userinfo",
     }),
     GitHub({
       clientId: process.env.AUTH_GITHUB_ID,

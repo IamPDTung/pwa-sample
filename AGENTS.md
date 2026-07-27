@@ -82,3 +82,4 @@
 - **Role change requires re-login** — roles are written into JWT at sign-in; updating env vars only takes effect after sign out + sign in
 - **Next.js 16 uses `proxy.ts`** — renamed from `middleware.ts`; exports `auth as proxy` for edge route protection
 - **`AUTH_TRUST_HOST=true` required for localhost production** — in `next start` mode, Auth.js rejects untrusted hosts; set this env var or add `trustHost: true` to config
+- **Google provider needs explicit endpoints behind corporate proxy** — Google is `type: "oidc"` which triggers `.well-known/openid-configuration` fetch; if blocked, pass `authorization`, `token`, `userinfo` URLs explicitly to skip OIDC discovery
