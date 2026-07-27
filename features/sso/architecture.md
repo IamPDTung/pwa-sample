@@ -12,12 +12,16 @@ Trang `/sso` demo hệ thống Single Sign-On thực tế qua **Auth.js v5** (`n
 
 ## Yêu cầu thiết lập từ người dùng
 
-### 1. Auth Secret (bắt buộc)
-Auth.js yêu cầu `AUTH_SECRET` để mã hóa session JWT:
+### 1. Auth Secret + Trust Host (bắt buộc)
+Auth.js yêu cầu `AUTH_SECRET` để mã hóa session JWT và `AUTH_TRUST_HOST=true` cho chạy localhost ở chế độ production (`next start`):
 ```bash
-npx auth secret
+npx auth secret             # Tự động tạo key (manual: node -e "require('crypto').randomBytes(32).toString('hex')")
 ```
-Tự động tạo key và thêm vào `.env.local`.
+Thêm vào `.env.local`:
+```env
+AUTH_SECRET=<generated-key>
+AUTH_TRUST_HOST=true         # Required for localhost in production mode
+```
 
 ### 2. Google OAuth
 1. Vào [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
@@ -30,6 +34,8 @@ Tự động tạo key và thêm vào `.env.local`.
    AUTH_GOOGLE_ID=<your-client-id>
    AUTH_GOOGLE_SECRET=<your-client-secret>
    ```
+
+> **Lưu ý:** Google provider có `type: "oidc"`, Auth.js tự động fetch `https://accounts.google.com/.well-known/openid-configuration` để lấy authorization/token/userinfo endpoints. Nếu mạng corporate/proxy chặn request này → lỗi `TypeError: fetch failed`. Fix: truyền explicit `authorization`, `token`, `userinfo` URLs trong auth.ts để bỏ qua OIDC discovery (đã cấu hình sẵn).
 
 ### 3. GitHub OAuth
 1. Vào [GitHub Developer Settings](https://github.com/settings/developers) → **OAuth Apps** → **New OAuth App**
@@ -58,9 +64,9 @@ Email trong danh sách admin **tự động bao gồm** editor và viewer roles 
 
 | File | Vai trò |
 |---|---|
-| `auth.ts` | Root config: `NextAuth()` với Google + GitHub providers, JWT callback gán roles từ env |
+| `src/auth.ts` | Root config: `NextAuth()` với Google + GitHub providers, JWT callback gán roles từ env |
 | `src/app/api/auth/[...nextauth]/route.ts` | Route handler: re-export `handlers` từ auth.ts |
-| `proxy.ts` | Next.js 16 proxy (tên mới của middleware): bảo vệ route `/sso/dashboard`, `/sso/admin`, `/sso/editor` |
+| `proxy.ts` | Next.js 16 proxy: bảo vệ route `/sso/dashboard`, `/sso/admin`, `/sso/editor`; matcher excludes `/api/*` |
 | `src/app/sso/page.tsx` | Server component: màn hình chọn provider (sign-in page) |
 | `src/app/sso/dashboard/page.tsx` | Server component: dashboard sau login — gọi `await auth()` |
 | `src/app/sso/admin/page.tsx` | Server component: admin-only — kiểm tra role |
@@ -176,6 +182,12 @@ Click "Sign Out" → signOut() từ next-auth/react
 ```ts
 // proxy.ts (Next.js 16)
 export { auth as proxy } from "@/auth"
+
+// Matcher: only run on page routes, exclude API routes and static files
+// Auth.js's own /api/auth/[...nextauth] handler must NOT go through the proxy
+export const config = {
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+}
 
 // auth.ts — authorized callback
 callbacks: {
@@ -386,6 +398,60 @@ export const GET = auth(async (req) => {
 | GET/POST | `/api/auth/[...nextauth]` | Auth.js built-in | Signin, callback, signout, session |
 | GET | `/api/sso/protected-data` | Session required | Protected data (any authenticated user) |
 | GET | `/api/sso/admin-data` | Session + admin role | Admin-only data |
+
+## Các vấn đề thường gặp (Troubleshooting)
+
+### 1. `UntrustedHost` error khi `next start` ở localhost
+
+**Lỗi:** `[auth][error] UntrustedHost: Host must be trusted. URL was: http://localhost:3000/api/auth/...`
+
+**Nguyên nhân:** Ở chế độ production, Auth.js yêu cầu host phải được tin tưởng. `localhost` mặc định bị từ chối.
+
+**Fix:** Thêm vào `.env.local`:
+```env
+AUTH_TRUST_HOST=true
+```
+
+### 2. `TypeError: fetch failed` khi click Sign in with Google
+
+**Lỗi:**
+```
+[auth][error] TypeError: fetch failed
+    at node:internal/deps/undici/undici:...
+    at async getAuthorizationUrl (authorization-url.js:25:35)
+```
+
+**Nguyên nhân:** Google provider có `type: "oidc"` → Auth.js tự động fetch `https://accounts.google.com/.well-known/openid-configuration` để lấy các endpoint. Mạng corporate hoặc proxy có thể chặn request này từ Node.js server.
+
+**Fix:** Truyền explicit `authorization`, `token`, `userinfo` URLs trong cấu hình Google provider (đã được cấu hình sẵn trong `src/auth.ts`):
+```ts
+Google({
+  clientId: process.env.AUTH_GOOGLE_ID,
+  clientSecret: process.env.AUTH_GOOGLE_SECRET,
+  authorization: "https://accounts.google.com/o/oauth2/v2/auth",
+  token: "https://oauth2.googleapis.com/token",
+  userinfo: "https://openidconnect.googleapis.com/v1/userinfo",
+})
+```
+
+### 3. Proxy xung đột với `/api/auth/*` routes
+
+**Lỗi:** 500 Internal Server Error trên `/api/auth/error`, hoặc sign-in flow bị redirect loop.
+
+**Nguyên nhân:** Proxy (`proxy.ts`) chạy trên tất cả các route, bao gồm cả `/api/auth/[...nextauth]`, gây xung đột với Auth.js internal handler.
+
+**Fix:** Thêm `config.matcher` vào `proxy.ts` để exclude API routes:
+```ts
+export const config = {
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+}
+```
+
+### 4. Role không thay đổi sau khi sửa `SSO_ADMIN_EMAILS` / `SSO_EDITOR_EMAILS`
+
+**Nguyên nhân:** Role được ghi vào JWT token tại thời điểm sign-in. JWT cũ vẫn chứa role cũ cho đến khi hết hạn hoặc user sign out.
+
+**Fix:** Sign out hoàn toàn, sau đó sign in lại để JWT được tạo mới với role từ env config hiện tại.
 
 ## Nguyên tắc thiết kế
 
