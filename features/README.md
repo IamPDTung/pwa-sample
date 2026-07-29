@@ -31,6 +31,7 @@ src/app/
 │   ├── query-provider.tsx
 │   ├── toast.tsx
 │   ├── lazy-demo.tsx
+│   ├── motion-demos.tsx     # Framer Motion 8 section demo component
 │   ├── lazy/               # Lazy-loaded modules (_heavy-widget, _heavy-processor)
 │   └── sso/                # SSO components (login-form, dashboard, session-banner, admin-panel, ...)
 ├── lib/                    # Shared logic
@@ -47,6 +48,10 @@ src/app/
 ├── optimistic/             # Trang CRUD lạc quan
 ├── lazy-loading/           # Trang lazy loading demo
 ├── threejs/                # Trang Three.js car viewer + driving game
+├── framer-motion/          # Trang Framer Motion (Motion) animation demos
+│   ├── gestures/           # Sub-page: hover, tap, drag demos
+│   ├── scroll/             # Sub-page: scroll-triggered, parallax demos
+│   └── layout/             # Sub-page: FLIP, shared layout, variants, SVG demos
 └── sso/                    # Trang SSO (login, dashboard, admin, editor)
 ```
 
@@ -84,6 +89,9 @@ features/
 ├── threejs/
 │   ├── architecture.md           ← Kiến trúc Three.js: R3F + WebGL, car viewer, arrow-key driving, map, collision
 │   └── usecases.md               ← 12 use cases: lái xe, chọn xe, va chạm cây, camera follow, mobile
+├── framer-motion/
+│   ├── architecture.md           ← Kiến trúc Motion: 4 pages, 8 sections, nested navbar, 5 future ideas
+│   └── usecases.md               ← 31 use cases: 14 main + 12 sub-pages + 5 real-world ideas (planned)
 └── sso/
     ├── architecture.md           ← Kiến trúc SSO: Auth.js v5 + Google/GitHub OAuth, role-based access, PWA offline session
     └── usecases.md               ← 20 use cases: login, env role config, protected routes, role check, PWA offline, push+SSO
@@ -118,6 +126,10 @@ features/
 | `/optimistic` | CRUD với optimistic UI + rollback | `GET/POST/PUT /api/items`, `DELETE /api/items/[id]` |
 | `/lazy-loading` | Demo code-splitting, lazy images, dynamic import, load more | `GET /api/lazy-items` |
 | `/threejs` | Car viewer: 5 xe thể thao, arrow-key driving, bản đồ 80×80, cây + cỏ, collision | Không (client-only) |
+| `/framer-motion` | 8 section demo Motion: enter/exit, gestures, drag, scroll, layout, variants, SVG | Không (client-only) |
+| `/framer-motion/gestures` | Gesture animations: hover & tap, presets, drag, drag + rotate | Không (client-only) |
+| `/framer-motion/scroll` | Scroll animations: triggered, stagger list, scale reveal, parallax | Không (client-only) |
+| `/framer-motion/layout` | Layout animations: FLIP shuffle, shared layoutId, variants, SVG, spring keyframes | Không (client-only) |
 | `/sso` | SSO với Google + GitHub OAuth (next-auth@beta), env-driven role assignment, protected routes | Auth.js built-in `/api/auth/[...nextauth]`, `GET /api/sso/protected-data`, `GET /api/sso/admin-data` |
 
 ## Các nguyên tắc thiết kế chung

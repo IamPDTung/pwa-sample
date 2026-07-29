@@ -5,7 +5,17 @@ import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import SessionBanner from "./sso/session-banner";
 
-const categories = [
+type NavItem = {
+  href: string;
+  label: string;
+  children?: { href: string; label: string }[];
+};
+
+const categories: {
+  key: string;
+  label: string;
+  items: NavItem[];
+}[] = [
   {
     key: "pwa" as const,
     label: "PWA Features",
@@ -29,7 +39,20 @@ const categories = [
     label: "UI Animations",
     items: [
       { href: "/threejs", label: "Three.js" },
-      { href: "/framer-motion", label: "Framer Motion" },
+      {
+        href: "/framer-motion",
+        label: "Framer Motion",
+        children: [
+          { href: "/framer-motion/gestures", label: "Gestures" },
+          { href: "/framer-motion/scroll", label: "Scroll" },
+          { href: "/framer-motion/layout", label: "Layout" },
+          { href: "/framer-motion/gallery", label: "Gallery" },
+          { href: "/framer-motion/todo", label: "To-Do" },
+          { href: "/framer-motion/wizard", label: "Wizard" },
+          { href: "/framer-motion/toast", label: "Toast" },
+          { href: "/framer-motion/music", label: "Music" },
+        ],
+      },
       { href: "/gsap", label: "GSAP" },
     ],
   },
@@ -39,6 +62,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [openSubDropdown, setOpenSubDropdown] = useState<string | null>(null);
 
   const pwaRef = useRef<HTMLDivElement>(null);
   const dataRef = useRef<HTMLDivElement>(null);
@@ -57,6 +81,7 @@ export default function Navbar() {
       if (dataRef.current?.contains(target)) return;
       if (animRef.current?.contains(target)) return;
       setOpenDropdown(null);
+      setOpenSubDropdown(null);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
@@ -97,7 +122,11 @@ export default function Navbar() {
 
           {categories.map((cat) => {
             const isOpen = openDropdown === cat.key;
-            const activeItem = cat.items.some((i) => pathname === i.href);
+            const activeItem = cat.items.some(
+              (i) =>
+                pathname === i.href ||
+                i.children?.some((c) => pathname === c.href),
+            );
 
             return (
               <div className="relative" key={cat.key} ref={refMap[cat.key]}>
@@ -123,19 +152,65 @@ export default function Navbar() {
 
                 {isOpen && (
                   <div className="absolute left-0 top-full mt-1 w-48 rounded-lg border border-zinc-200 bg-white py-1.5 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
-                    {cat.items.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`block px-3 py-1.5 text-sm mx-1 rounded-md transition-colors ${
-                          pathname === item.href
-                            ? "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300"
-                            : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                        }`}
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
+                    {cat.items.map((item: NavItem) =>
+                      item.children ? (
+                        <div
+                          key={item.href}
+                          className="relative"
+                          onMouseEnter={() => setOpenSubDropdown(item.href)}
+                          onMouseLeave={() => setOpenSubDropdown(null)}
+                        >
+                          <Link
+                            href={item.href}
+                            className={`flex items-center justify-between px-3 py-1.5 text-sm mx-1 rounded-md transition-colors ${
+                              pathname === item.href
+                                ? "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300"
+                                : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                            }`}
+                          >
+                            {item.label}
+                            <svg
+                              className="w-3 h-3 ml-2"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                          </Link>
+                          {openSubDropdown === item.href && (
+                            <div className="absolute left-full top-0 ml-1 w-36 rounded-lg border border-zinc-200 bg-white py-1.5 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+                              {item.children.map((child) => (
+                                <Link
+                                  key={child.href}
+                                  href={child.href}
+                                  className={`block px-3 py-1.5 text-sm mx-1 rounded-md transition-colors ${
+                                    pathname === child.href
+                                      ? "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300"
+                                      : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                                  }`}
+                                >
+                                  {child.label}
+                                </Link>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={`block px-3 py-1.5 text-sm mx-1 rounded-md transition-colors ${
+                            pathname === item.href
+                              ? "bg-violet-50 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300"
+                              : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                          }`}
+                        >
+                          {item.label}
+                        </Link>
+                      )
+                    )}
                   </div>
                 )}
               </div>
@@ -179,14 +254,24 @@ export default function Navbar() {
                 <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
                   {cat.label}
                 </p>
-                {cat.items.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`block ${linkClass(item.href)}`}
-                  >
-                    {item.label}
-                  </Link>
+                {cat.items.map((item: NavItem) => (
+                  <div key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={`block ${linkClass(item.href)}`}
+                    >
+                      {item.label}
+                    </Link>
+                    {item.children?.map((child) => (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        className={`block pl-7 ${linkClass(child.href)}`}
+                      >
+                        {child.label}
+                      </Link>
+                    ))}
+                  </div>
                 ))}
               </div>
             ))}
