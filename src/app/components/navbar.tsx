@@ -43,9 +43,6 @@ const categories: {
         href: "/framer-motion",
         label: "Framer Motion",
         children: [
-          { href: "/framer-motion/gestures", label: "Gestures" },
-          { href: "/framer-motion/scroll", label: "Scroll" },
-          { href: "/framer-motion/layout", label: "Layout" },
           { href: "/framer-motion/gallery", label: "Gallery" },
           { href: "/framer-motion/todo", label: "To-Do" },
           { href: "/framer-motion/wizard", label: "Wizard" },
