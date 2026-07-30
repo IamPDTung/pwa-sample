@@ -4,6 +4,7 @@
 - Next.js 16 (App Router, TypeScript, Tailwind CSS)
 - PWA via `@serwist/next` with webpack bundling
 - TanStack: Table, Virtual, Query
+- GSAP — scroll-driven animations with ScrollTrigger
 - web-push — server-side push notifications via browser push service
 - next-auth@beta (Auth.js v5) — SSO with Google + GitHub OAuth
 
@@ -20,6 +21,8 @@
 - `src/app/virtual/page.tsx` — virtual table (100K rows, TanStack Table + Virtual)
 - `src/app/spreadsheet/page.tsx` — custom spreadsheet (formulas, CSV import/export, cell tracking)
 - `src/app/optimistic/page.tsx` — CRUD with optimistic UI + rollback (TanStack Query)
+- `src/app/gsap/page.tsx` — GSAP storytelling page (server component with metadata), renders `<GsapPageClient />`
+- `src/app/gsap/gsap-page-client.tsx` — version picker UI: fixed panel top-left, switches between 6 scroll behaviors (Classic + V1–V5), lazy-loads variant components
 - `src/app/lazy-loading/page.tsx` — lazy loading demo (next/dynamic, JS-driven lazy images, dynamic import, load more)
 - `src/app/sso/` — SSO pages: sign-in (`/sso`), dashboard, admin, editor
 - `src/auth.ts` — Auth.js v5 config: Google + GitHub providers, JWT callback for env-based role assignment (SSO_ADMIN_EMAILS, SSO_EDITOR_EMAILS)
@@ -46,6 +49,13 @@
 - `src/app/components/query-provider.tsx` — QueryClientProvider wrapper
 - `src/app/components/toast.tsx` — ToastProvider + useToast(), auto-dismiss 3.5s
 - `src/app/components/lazy-demo.tsx` — 4 lazy loading demos: next/dynamic widget, JS-driven lazy images, dynamic import module, load more
+- `src/app/components/gsap-story.tsx` — original/default GSAP storytelling (natural scroll, classic animations), wraps shared `<GsapStoryContent />`
+- `src/app/components/gsap-story-content.tsx` — shared section JSX (hero + ch1–ch5 chapters with all content), used by all GSAP story variants
+- `src/app/components/gsap-story-v1.tsx` — **V1 · Snap**: full-page scroll jacking (wheel hijack + arrow keys, one tick = one section, GSAP proxy scroll)
+- `src/app/components/gsap-story-v2.tsx` — **V2 · Dots**: side dot navigation + progress bar, click-to-jump, natural scroll; uses ScrollTrigger `onEnter`/`onEnterBack` to track active section
+- `src/app/components/gsap-story-v3.tsx` — **V3 · Threshold**: ScrollTrigger snap with 35% threshold, only snaps when close to a section top
+- `src/app/components/gsap-story-v4.tsx` — **V4 · Buttons**: bottom nav bar (prev/next + section label), page counter, arrow key support
+- `src/app/components/gsap-story-v5.tsx` — **V5 · Cinematic**: rich animations (parallax falls, rotateX/rotateY entrance, elastic bounces), no snap
 - `src/app/components/sso/login-form.tsx` — sign-in buttons (Google + GitHub), calls `signIn()`
 - `src/app/components/sso/dashboard.tsx` — session info display: avatar, email, role badges, quick links
 - `src/app/components/sso/session-banner.tsx` — navbar integration: avatar + dropdown (dashboard, admin, editor, sign out)
@@ -83,3 +93,5 @@
 - **Next.js 16 uses `proxy.ts`** — renamed from `middleware.ts`; exports `auth as proxy` for edge route protection
 - **`AUTH_TRUST_HOST=true` required for localhost production** — in `next start` mode, Auth.js rejects untrusted hosts; set this env var or add `trustHost: true` to config
 - **Google provider needs explicit endpoints behind corporate proxy** — Google is `type: "oidc"` which triggers `.well-known/openid-configuration` fetch; if blocked, pass `authorization`, `token`, `userinfo` URLs explicitly to skip OIDC discovery
+- **GSAP scroll uses proxy object, not ScrollToPlugin** — `ScrollToPlugin` is a Club GreenSock bonus; variants use `gsap.to({ y: window.scrollY }, { y: target, onUpdate: () => window.scrollTo(0, proxy.y) })` instead
+- **GSAP variant lazy-loading** — `gsap-page-client.tsx` uses `next/dynamic` for V1–V5; SSR always shows Classic (default) to avoid hydration mismatch
