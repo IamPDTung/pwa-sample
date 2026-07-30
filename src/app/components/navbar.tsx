@@ -50,7 +50,13 @@ const categories: {
           { href: "/framer-motion/music", label: "Music" },
         ],
       },
-      { href: "/gsap", label: "GSAP" },
+      {
+        href: "/gsap",
+        label: "GSAP",
+        children: [
+          { href: "/gsap/cv", label: "CV" },
+        ],
+      },
     ],
   },
 ];
